@@ -10,8 +10,8 @@ import SwiftUI
 // MARK: - Enum for Roles
 
 enum UserRole: String {
-    case provider
-    case client
+    case company
+    case personal
 }
 
 // MARK: - Registration Role View
@@ -31,9 +31,9 @@ struct RegistrationRoleView: View {
                     icon: "person.fill",
                     title: "مقدم خدمة",
                     description: "ستكون قادر على عرض اعمالك وتلقي العروض من العملاء عبر المنصة.",
-                    selected: selectedRole == .provider
+                    selected: selectedRole == .company
                 ) {
-                    selectedRole = .provider
+                    selectedRole = .company
                 }
                 .frame(maxWidth: .infinity)
 
@@ -41,9 +41,9 @@ struct RegistrationRoleView: View {
                     icon: "building.2.fill",
                     title: "صاحب مشاريع",
                     description: "سنساعدك في اختيار أفضل مقدمين الخدمات والحصول على خدمة مميزة",
-                    selected: selectedRole == .client
+                    selected: selectedRole == .personal
                 ) {
-                    selectedRole = .client
+                    selectedRole = .personal
                 }
                 .frame(maxWidth: .infinity)
             }

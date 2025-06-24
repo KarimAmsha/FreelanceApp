@@ -8,9 +8,8 @@
 import SwiftUI
 
 struct RegistrationPersonalInfoView: View {
-    @State private var gender: String = "male"
-    @State private var fullName: String = ""
-    @State private var phone: String = ""
+    @State var presentSheet = false
+    @ObservedObject var viewModel: RegistrationViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -19,27 +18,17 @@ struct RegistrationPersonalInfoView: View {
                 subtitle: "يرجى تعبئة البيانات الشخصية بدقة لضمان إنشاء الحساب."
             )
 
-            HStack(spacing: 100) {
-                GenderOption(title: "ذكر", selected: $gender, value: "male")
-                GenderOption(title: "أنثى", selected: $gender, value: "female")
-            }
+//            HStack(spacing: 100) {
+//                GenderOption(title: "ذكر", selected: $viewModel.gender, value: "male")
+//                GenderOption(title: "أنثى", selected: $viewModel.gender, value: "female")
+//            }
 
-            TextField("الاسم الكامل", text: $fullName)
+            TextField("الاسم الكامل", text: $viewModel.full_name)
                 .padding()
                 .background(Color.white)
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
 
-            HStack {
-                Text("+966")
-                    .padding()
-                    .background(Color.white)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
-                TextField("رقم الهاتف", text: $phone)
-                    .padding()
-                    .background(Color.white)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
-            }
-            .frame(height: 48)
+            MobileView(mobile: $viewModel.phone_number, presentSheet: $presentSheet)
 
             Spacer()
         }
@@ -50,7 +39,7 @@ struct RegistrationPersonalInfoView: View {
 }
 
 #Preview {
-    RegistrationPersonalInfoView()
+    RegistrationPersonalInfoView(viewModel: RegistrationViewModel(errorHandling: ErrorHandling()))
 }
 
 struct GenderOption: View {

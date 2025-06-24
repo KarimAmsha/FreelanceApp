@@ -1,26 +1,9 @@
-//
-//  SpecialtySelectionPopup.swift
-//  FreelanceApp
-//
-//  Created by Karim OTHMAN on 6.05.2025.
-//
-
 import SwiftUI
 
 struct SpecialtySelectionPopup: View {
     @Binding var isPresented: Bool
-    @AppStorage("selectedSpecialty") var selectedSpecialty: String = ""
-
-    let specialties: [Specialty] = [
-        Specialty(name: "مصمم", icon: "pencil.and.ruler", color: Color.purple.opacity(0.1)),
-        Specialty(name: "مختص مالي", icon: "briefcase", color: Color.blue.opacity(0.1)),
-        Specialty(name: "طبيب / ممرض", icon: "cross.case", color: Color.green.opacity(0.1)),
-        Specialty(name: "مدرب", icon: "person.2.wave.2", color: Color.orange.opacity(0.1)),
-        Specialty(name: "مُعلم", icon: "book", color: Color.teal.opacity(0.1)),
-        Specialty(name: "مهندس", icon: "wrench.and.screwdriver", color: Color.indigo.opacity(0.1)),
-        Specialty(name: "مطور", icon: "chevron.left.slash.chevron.right", color: Color.red.opacity(0.1)),
-        Specialty(name: "مدير", icon: "person.crop.rectangle", color: Color.cyan.opacity(0.1))
-    ]
+    var categories: [Category]
+    @Binding var selectedCategoryIds: [String]
 
     var body: some View {
         VStack(spacing: 16) {
@@ -33,43 +16,47 @@ struct SpecialtySelectionPopup: View {
                 .font(.title3.bold())
                 .foregroundColor(.primary)
 
-            Text("اختر التخصص الذي ستعمل فيه على منصتنا")
+            Text("اختر تخصص أو أكثر (اضغط لإنهاء)")
                 .font(.subheadline)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                ForEach(specialties, id: \.name) { item in
-                    Button {
-                        selectedSpecialty = item.name
-                        isPresented = false
-                    } label: {
-                        VStack(spacing: 8) {
-                            Image(systemName: item.icon)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 30, height: 30)
-                                .padding()
-                                .background(item.color)
-                                .cornerRadius(12)
-
-                            Text(item.name)
-                                .font(.body.bold())
-                                .foregroundColor(.primary)
-
-                            Text("+1500 فريلانسر")
-                                .font(.caption)
-                                .foregroundColor(.gray)
+            if categories.isEmpty {
+                ProgressView("جارٍ تحميل التخصصات...")
+                    .padding(.vertical)
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                        ForEach(categories) { item in
+                            // 1. احفظ id في متغير محلي وغير اختياري
+                            guard let itemId = item.id else { return AnyView(EmptyView()) }
+                            let isSelected = selectedCategoryIds.contains(itemId)
+                            // 2. استخدم المتغير المحلي في كل مكان
+                            return AnyView(
+                                Button {
+                                    if isSelected {
+                                        selectedCategoryIds.removeAll { $0 == itemId }
+                                    } else {
+                                        selectedCategoryIds.append(itemId)
+                                    }
+                                } label: {
+                                    SpecialtyItemView(item: item, isSelected: isSelected)
+                                }
+                            )
                         }
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.white)
-                        .cornerRadius(12)
-                        .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
                     }
+                    .padding(.bottom)
                 }
+                Button("تم") {
+                    isPresented = false
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.primary())
+                .foregroundColor(.white)
+                .cornerRadius(12)
+                .padding(.top)
             }
-            .padding(.bottom)
         }
         .padding()
         .background(Color.white)
@@ -78,14 +65,53 @@ struct SpecialtySelectionPopup: View {
     }
 }
 
-struct Specialty {
-    let name: String
-    let icon: String
-    let color: Color
+struct SpecialtyItemView: View {
+    var item: Category
+    var isSelected: Bool
+
+    var body: some View {
+        VStack(spacing: 8) {
+            if let imageUrl = item.image, let url = URL(string: imageUrl) {
+                AsyncImage(url: url) { img in
+                    img.resizable()
+                } placeholder: {
+                    Color.gray.opacity(0.1)
+                }
+                .frame(width: 40, height: 40)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+                Image(systemName: "questionmark.square")
+                    .resizable()
+                    .frame(width: 30, height: 30)
+                    .foregroundColor(.gray)
+            }
+            Text(item.title)
+                .font(.body.bold())
+                .foregroundColor(.primary)
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(isSelected ? Color.yellowF8B22A() : Color.white)
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(isSelected ? Color.primary() : Color.clear, lineWidth: 2)
+        )
+    }
 }
 
 #Preview {
     SpecialtySelectionPopup(
-        isPresented: .constant(false)
+        isPresented: .constant(true),
+        categories: [
+            Category(id: "1", title: "مصمم", description: nil, image: nil, sub: nil),
+            Category(id: "2", title: "مهندس برمجيات", description: nil, image: nil, sub: nil)
+        ],
+        selectedCategoryIds: .constant(["2"])
     )
 }

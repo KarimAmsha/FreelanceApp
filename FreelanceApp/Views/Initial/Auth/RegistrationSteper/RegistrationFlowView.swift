@@ -6,7 +6,7 @@ enum RegistrationStep: Int {
 }
 
 struct RegistrationFlowView: View {
-    @State private var selectedRole: UserRole? = .provider
+    @State private var selectedRole: UserRole? = .company
     @State private var step: RegistrationStep = .role
     @State private var showSpecialtyPopup = false
     @State private var showPrivacySheet = false
@@ -14,12 +14,14 @@ struct RegistrationFlowView: View {
     @State private var agreedToPrivacy = false
     @EnvironmentObject var appState: AppState
     var steps: [RegistrationStep] {
-        if selectedRole == .client {
+        if selectedRole == .personal {
             return [.role, .personalInfo, .confirmPhone]
         } else {
             return [.role, .personalInfo, .workInfo, .identity, .confirmPhone]
         }
     }
+    @StateObject private var regViewModel = RegistrationViewModel(errorHandling: ErrorHandling())
+    @StateObject var mediaVM = MediaPickerViewModel()
 
     var body: some View {
         ZStack {
@@ -32,13 +34,13 @@ struct RegistrationFlowView: View {
                 ZStack {
                     switch step {
                     case .role:
-                        RegistrationRoleView(selectedRole: $selectedRole)
+                        RegistrationRoleView(selectedRole: $regViewModel.selectedRole)
                     case .personalInfo:
-                        RegistrationPersonalInfoView()
+                        RegistrationPersonalInfoView(viewModel: regViewModel)
                     case .workInfo:
-                        RegistrationWorkInfoView(showSpecialtyPopup: $showSpecialtyPopup)
+                        RegistrationWorkInfoView(viewModel: regViewModel, showSpecialtyPopup: $showSpecialtyPopup)
                     case .identity:
-                        RegistrationIdentityView()
+                        RegistrationIdentityView(mediaVM: mediaVM, viewModel: regViewModel)
                     case .confirmPhone:
                         ConfirmPhoneView(onComplete: {
                             showSuccessPopup = true
@@ -73,18 +75,6 @@ struct RegistrationFlowView: View {
             .padding(.horizontal)
             .background(Color.background())
             .environment(\.layoutDirection, .rightToLeft)
-            .popup(isPresented: $showSpecialtyPopup) {
-                SpecialtySelectionPopup(isPresented: $showSpecialtyPopup)
-            } customize: {
-                $0
-                    .type(.default)
-                    .position(.center)
-                    .animation(.spring())
-                    .closeOnTapOutside(true)
-                    .closeOnTap(true)
-                    .backgroundColor(Color.black.opacity(0.5))
-                    .useKeyboardSafeArea(true)
-            }
             .popup(isPresented: $showSuccessPopup) {
                 SuccessSubmissionView(isPresented: $showSuccessPopup)
                     .environmentObject(appState)

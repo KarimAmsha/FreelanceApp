@@ -1,23 +1,66 @@
-//
-//  RegistrationIdentityView.swift
-//  FreelanceApp
-//
-//  Created by Karim OTHMAN on 6.05.2025.
-//
-
 import SwiftUI
+import AVFoundation
 
 struct RegistrationIdentityView: View {
+    @ObservedObject var mediaVM: MediaPickerViewModel
+    @ObservedObject var viewModel: RegistrationViewModel
+    @State private var uploadingProfile = false
+    @State private var uploadingID = false
+
     var body: some View {
         VStack(spacing: 24) {
             RegistrationStepHeader(
                 title: "اثبات الهوية",
-                subtitle: "قم بربط بيانات حساباتك البنكية التي ستتلقى عليها الأرباح مستقبلاً!"
+                subtitle: "قم برفع صورتك وصورة هويتك."
             )
-
             VStack(spacing: 16) {
-                UploadBox(title: "قم بالضغط لرفع صورتك الشخصية")
-                UploadBox(title: "قم بالضغط لرفع صورة هويتك")
+                UploadBox(
+                    title: mediaVM.getImage(for: .profileImage) == nil ? "قم بالضغط لرفع صورتك الشخصية" : "تم اختيار الصورة الشخصية",
+                    image: mediaVM.getImage(for: .profileImage),
+                    isUploading: uploadingProfile,
+                    onTap: { mediaVM.isPresentingPickerFor = .profileImage },
+                    onUpload: {
+                        if let image = mediaVM.getImage(for: .profileImage) {
+                            uploadingProfile = true
+                            FirestoreService.shared.uploadImageWithThumbnail(image: image, id: viewModel.phone_number, imageName: "profile") { url, success in
+                                uploadingProfile = false
+                                if success, let url = url {
+                                    viewModel.imageURL = url
+                                }
+                            }
+                        }
+                    },
+                    onRemove: { mediaVM.removeMedia(for: .profileImage) }
+                )
+                UploadBox(
+                    title: mediaVM.getImage(for: .idImage) == nil ? "قم بالضغط لرفع صورة هويتك" : "تم اختيار صورة الهوية",
+                    image: mediaVM.getImage(for: .idImage),
+                    isUploading: uploadingID,
+                    onTap: { mediaVM.isPresentingPickerFor = .idImage },
+                    onUpload: {
+                        if let image = mediaVM.getImage(for: .idImage) {
+                            uploadingID = true
+                            FirestoreService.shared.uploadImageWithThumbnail(image: image, id: viewModel.phone_number, imageName: "id_card") { url, success in
+                                uploadingID = false
+                                if success, let url = url {
+                                    viewModel.idImageURL = url
+                                }
+                            }
+                        }
+                    },
+                    onRemove: { mediaVM.removeMedia(for: .idImage) }
+                )
+            }
+            Spacer()
+        }
+        // لا حاجة لـ actionSheet لأنك فقط صور، مجرد تفتح البيكر مباشرة
+        .sheet(item: $mediaVM.isPresentingPickerFor) { type in
+            ImageVideoPicker(
+                sourceType: mediaVM.sourceType,
+                mediaTypes: ["public.image"] // 👈 فقط الصور في هذه الشاشة
+            ) { img, url in
+                mediaVM.didSelectImage(img)
+                // لن يتم اختيار فيديو هنا أبدًا
             }
         }
         .padding()
@@ -28,17 +71,45 @@ struct RegistrationIdentityView: View {
 
 struct UploadBox: View {
     var title: String
+    var image: UIImage?
+    var isUploading: Bool = false
+    var onTap: () -> Void
+    var onUpload: () -> Void
+    var onRemove: () -> Void
 
     var body: some View {
         VStack {
-            Spacer()
-            Image(systemName: "camera")
-                .font(.system(size: 24))
-            Text(title)
-                .font(.caption)
-                .multilineTextAlignment(.center)
-                .padding(.top, 4)
-            Spacer()
+            Button(action: onTap) {
+                VStack {
+                    if let image = image {
+                        Image(uiImage: image)
+                            .resizable()
+                            .frame(width: 80, height: 80)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    } else {
+                        Image(systemName: "camera")
+                            .font(.system(size: 24))
+                    }
+                    Text(title)
+                        .font(.caption)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 4)
+                }
+            }
+            if image != nil && !isUploading {
+                HStack {
+                    Button("رفع الصورة", action: onUpload)
+                        .padding(.vertical, 4)
+                    Button(role: .destructive) {
+                        onRemove()
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                }
+            }
+            if isUploading {
+                ProgressView("جاري الرفع...")
+            }
         }
         .frame(maxWidth: .infinity, minHeight: 120)
         .background(Color.white)
@@ -51,5 +122,8 @@ struct UploadBox: View {
 }
 
 #Preview {
-    RegistrationIdentityView()
+    RegistrationIdentityView(
+        mediaVM: MediaPickerViewModel(),
+        viewModel: RegistrationViewModel(errorHandling: ErrorHandling())
+    )
 }

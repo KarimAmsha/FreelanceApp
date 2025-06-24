@@ -1,93 +1,78 @@
-//
-//  MediaPickerViewModel.swift
-//  Wishy
-//
-//  Created by Karim Amsha on 27.04.2024.
-//
-
 import SwiftUI
+import AVFoundation
 
-class MediaPickerViewModel: ObservableObject {
-    @Published var selectedImage: UIImage?
-    @Published var selectedImageLastPath: String?
-    @Published var selectedIDImage: UIImage?
-    @Published var selectedIDImageLastPath: String?
-    @Published var isPresentingImagePicker = false
-    @Published var isPresentingIDImagePicker = false
-    private(set) var sourceType: ImagePicker.SourceType = .camera
-    
-    func choosePhoto() {
-        sourceType = .photoLibrary
-        isPresentingImagePicker = true
-    }
-    
-    func takePhoto() {
-        sourceType = .camera
-        isPresentingImagePicker = true
-    }
-    
-    func chooseIDPhoto() {
-        sourceType = .photoLibrary
-        isPresentingIDImagePicker = true
-    }
-    
-    func takeIDPhoto() {
-        sourceType = .camera
-        isPresentingIDImagePicker = true
-    }
-    
-    func chooseVideo() {
-        sourceType = .photoLibrary
-        isPresentingImagePicker = true
-    }
-    
-    func didSelectImage(_ image: UIImage?, _ lastPath: String?) {
-        selectedImage = image
-        selectedImageLastPath = lastPath
-        isPresentingImagePicker = false
-        
-    }
-    
-    func didSelectIDImage(_ image: UIImage?, _ lastPath: String?) {
-        selectedIDImage = image
-        selectedIDImageLastPath = lastPath
-        isPresentingIDImagePicker = false
-    }
+enum MediaType: String, Identifiable, CaseIterable {
+    case profileImage
+    case idImage
+    case video
+    case file
+    var id: String { rawValue }
 }
 
-class MediaViewModel: ObservableObject {
-    @Published var selectedImage: UIImage?
-    @Published var selectedVideoUrl: URL?
-    @Published var isPresentingMediaPicker = false
-    private(set) var sourceType: MediaPicker.SourceType = .camera
-    var mediaType: MediaPicker.MType = .image
+class MediaPickerViewModel: ObservableObject {
+    @Published var images: [MediaType: UIImage] = [:]
+    @Published var videos: [MediaType: URL] = [:]
+    @Published var files: [MediaType: URL] = [:]
+    @Published var isPresentingPickerFor: MediaType? = nil
+    @Published var isPresentingDocumentPickerFor: MediaType? = nil
 
-    func choosePhoto() {
-        sourceType = .photoLibrary
-        mediaType = .image
-        isPresentingMediaPicker = true
+    var sourceType: UIImagePickerController.SourceType = .photoLibrary
+    var mediaPickerType: MediaKind = .image
+
+    enum MediaKind {
+        case image, video
     }
-    
-    func takePhoto() {
-        sourceType = .camera
-        mediaType = .image
-        isPresentingMediaPicker = true
+
+    // عرض اختيار من الكاميرا أو الجالري
+    func pickPhoto(for type: MediaType, fromCamera: Bool = false) {
+        sourceType = fromCamera ? .camera : .photoLibrary
+        mediaPickerType = .image
+        isPresentingPickerFor = type
     }
-    
-    func chooseVideo() {
-        sourceType = .photoLibrary
-        mediaType = .video
-        isPresentingMediaPicker = true
+
+    func pickVideo(for type: MediaType, fromCamera: Bool = false) {
+        sourceType = fromCamera ? .camera : .photoLibrary
+        mediaPickerType = .video
+        isPresentingPickerFor = type
     }
-    
+
+    func pickFile(for type: MediaType) {
+        isPresentingDocumentPickerFor = type
+    }
+
     func didSelectImage(_ image: UIImage?) {
-        selectedImage = image
-        isPresentingMediaPicker = false
+        guard let type = isPresentingPickerFor else { return }
+        if let img = image { images[type] = img }
+        isPresentingPickerFor = nil
     }
-    
+
     func didSelectVideo(_ url: URL?) {
-        selectedVideoUrl = url
-        selectedImage = url?.getThumbnailFrom()
-        isPresentingMediaPicker = false
+        guard let type = isPresentingPickerFor else { return }
+        if let url = url { videos[type] = url }
+        isPresentingPickerFor = nil
+    }
+
+    func didSelectFile(_ url: URL?) {
+        guard let type = isPresentingDocumentPickerFor else { return }
+        if let url = url { files[type] = url }
+        isPresentingDocumentPickerFor = nil
+    }
+
+    func removeMedia(for type: MediaType) {
+        images[type] = nil
+        videos[type] = nil
+        files[type] = nil
+    }
+
+    func getImage(for type: MediaType) -> UIImage? {
+        images[type]
+    }
+
+    func getVideo(for type: MediaType) -> URL? {
+        videos[type]
+    }
+
+    func getFile(for type: MediaType) -> URL? {
+        files[type]
     }
 }

@@ -35,54 +35,28 @@ enum CategoryType: String, Codable {
     }
 }
 
-struct Category: Codable, Hashable {
+struct Category: Identifiable, Codable, Hashable {
     let id: String?
-    let arName: String?
-    let enName: String?
-    let enDescription: String?
-    let arDescription: String?
-    let isDeleted: Bool?
-    let type: String?
+    let title: String?
+    let description: String?
     let image: String?
-    let v: Int?
+    let sub: [SubCategory]?
 
     enum CodingKeys: String, CodingKey {
         case id = "_id"
-        case arName
-        case enName
-        case enDescription
-        case arDescription
-        case isDeleted
-        case type
-        case image
-        case v = "__v"
-    }
-    
-    var categoryType: CategoryType {
-        guard let id = id else { return .unknown }
-        return CategoryType(from: id)
-    }
-
-    // Computed property to return name based on app language
-    var localizedName: String? {
-        let languageCode = Locale.current.language.languageCode?.identifier
-        switch languageCode {
-        case "ar":
-            return arName
-        default:
-            return enName
-        }
-    }
-    
-    var localizedDescription: String? {
-        let languageCode = Locale.current.language.languageCode?.identifier
-        switch languageCode {
-        case "ar":
-            return arDescription
-        default:
-            return enDescription
-        }
+        case title, description, image, sub
     }
 }
 
-
+struct SubCategory: Identifiable, Codable, Hashable {
+    let id: String
+    let price: Double?
+    let image: String?
+    let title: String
+    let description: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case price, image, title, description
+    }
+}

@@ -24,7 +24,7 @@ struct MainView: View {
             MainTabItem(page: .more, iconSystemName: "line.3.horizontal", title: "المزيد")
         ]
 
-        if settings.userRole == .provider {
+        if settings.userRole == .company {
             items.insert(
                 MainTabItem(page: .addService, iconSystemName: "plus.circle", title: "إضافة خدمة"),
                 at: 2
@@ -49,10 +49,9 @@ struct MainView: View {
                     case .home:
                         HomeView()
                     case .chat:
-//                        ChatListView(userId: UserSettings.shared.id ?? "")
-                        ChatListView(viewModel: MockChatListViewModel(userId: "user1"))
+                        ChatListView(userId: UserSettings.shared.id ?? "")
                     case .projects:
-                        if settings.userRole == .provider {
+                        if settings.userRole == .company {
                             ProjectsView()
                         } else {
                             ClientProjectsView()
@@ -190,9 +189,8 @@ struct MainView: View {
                     FreelancerProfileView()
                 case .serviceDetails:
                     ServiceDetailsView()
-                case .chatDetail(let id):
-//                    ChatDetailView(chatId: id, currentUserId: UserSettings.shared.id ?? "")
-                    ChatDetailView(viewModel: MockChatViewModel())
+                case .chat(let chatId, let currentUserId):
+                    ChatDetailView(chatId: chatId, currentUserId: currentUserId)
                 }
             }
             .popup(isPresented: Binding<Bool>(

@@ -79,12 +79,6 @@ enum MType: String, Codable {
     }
 }
 
-enum MediaType {
-    case multi
-    case video
-    case image
-}
-
 enum Page {
     case home, chat, addService, more, projects
 }

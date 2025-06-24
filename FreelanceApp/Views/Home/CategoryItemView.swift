@@ -19,7 +19,7 @@ struct CategoryItemView: View {
             .padding(6)
             .skeleton(with: item == nil)
 
-            Text(item?.localizedName ?? "")
+            Text(item?.title ?? "")
                 .customFont(weight: .bold, size: 14)
                 .foregroundColor(.primaryBlack())
                 .padding(.bottom, 4)

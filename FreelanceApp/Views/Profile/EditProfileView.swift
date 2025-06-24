@@ -11,17 +11,11 @@ struct EditProfileView: View {
 
     @StateObject private var viewModel = UserViewModel(errorHandling: ErrorHandling())
     @StateObject private var mediaPickerViewModel = MediaPickerViewModel()
-    @State private var isFloatingPickerPresented = false
-
-    private var isImageSelected: Bool {
-        mediaPickerViewModel.selectedImage != nil
-    }
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-
                     // MARK: - Profile Image Section
                     HStack(spacing: 16) {
                         profileImageView()
@@ -32,7 +26,8 @@ struct EditProfileView: View {
                         Spacer()
 
                         Button(action: {
-                            isFloatingPickerPresented.toggle()
+                            // فتح اختيار صورة البروفايل
+                            mediaPickerViewModel.isPresentingPickerFor = .profileImage
                         }) {
                             Text("اضغط لرفع صورة جديدة")
                                 .font(.system(size: 14))
@@ -42,7 +37,8 @@ struct EditProfileView: View {
                         Spacer()
                         
                         Button(action: {
-                            isFloatingPickerPresented.toggle()
+                            // حذف صورة البروفايل
+                            mediaPickerViewModel.removeMedia(for: .profileImage)
                         }) {
                             Image(systemName: "trash")
                                 .foregroundColor(.red)
@@ -50,7 +46,6 @@ struct EditProfileView: View {
                                 .background(Color.white)
                                 .clipShape(Circle())
                         }
-
                     }
                     .padding()
                     .background(Color.primary().opacity(0.2))
@@ -109,22 +104,14 @@ struct EditProfileView: View {
                 userLocation = location
             }
         }
-        .fullScreenCover(isPresented: $mediaPickerViewModel.isPresentingImagePicker) {
-            ImagePicker(sourceType: mediaPickerViewModel.sourceType, completionHandler: mediaPickerViewModel.didSelectImage)
-        }
-        .popup(isPresented: $isFloatingPickerPresented) {
-            FloatingPickerView(
-                isPresented: $isFloatingPickerPresented,
-                onChoosePhoto: mediaPickerViewModel.choosePhoto,
-                onTakePhoto: mediaPickerViewModel.takePhoto
-            )
-        } customize: {
-            $0
-                .type(.toast)
-                .position(.bottom)
-                .animation(.spring())
-                .closeOnTapOutside(true)
-                .backgroundColor(Color.black.opacity(0.5))
+        // ImageVideoPicker: للصور فقط في هذه الشاشة
+        .sheet(item: $mediaPickerViewModel.isPresentingPickerFor) { type in
+            ImageVideoPicker(
+                sourceType: mediaPickerViewModel.sourceType,
+                mediaTypes: ["public.image"]
+            ) { img, url in
+                mediaPickerViewModel.didSelectImage(img)
+            }
         }
         .overlay(
             MessageAlertObserverView(
@@ -142,7 +129,6 @@ struct EditProfileView: View {
                         Image(systemName: "chevron.backward")
                             .foregroundColor(.black)
                     }
-
                     Text("اسم وصورة العرض")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.black)
@@ -154,7 +140,7 @@ struct EditProfileView: View {
     // MARK: - Profile Image View
     @ViewBuilder
     func profileImageView() -> some View {
-        if let selectedImage = mediaPickerViewModel.selectedImage {
+        if let selectedImage = mediaPickerViewModel.getImage(for: .profileImage) {
             Image(uiImage: selectedImage)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
@@ -173,19 +159,40 @@ struct EditProfileView: View {
 
     // MARK: - Update Profile
     private func update() {
-        var imageData: Data? = nil
-        if isImageSelected, let uiImage = mediaPickerViewModel.selectedImage {
-            imageData = uiImage.jpegData(compressionQuality: 0.8)
-        }
+        let image = mediaPickerViewModel.getImage(for: .profileImage)
+        let userId = viewModel.user?.id ?? viewModel.user?.phone_number ?? "unknown"
 
+        if let image = image {
+            // ارفع الصورة باستخدام FirestoreService
+            FirestoreService.shared.uploadImageWithThumbnail(
+                image: image,
+                id: userId,
+                imageName: "profile"
+            ) { url, success in
+                if success, let url = url {
+                    // أكمل تعديل البروفايل مع رابط الصورة الجديدة
+                    self.performProfileUpdate(imageURL: url)
+                } else {
+                    showMessage(message: "فشل رفع الصورة. حاول مرة أخرى.")
+                }
+            }
+        } else {
+            // لم يغير الصورة، أرسل الرابط القديم أو nil
+            let oldUrl = viewModel.user?.image
+            self.performProfileUpdate(imageURL: oldUrl)
+        }
+    }
+
+    private func performProfileUpdate(imageURL: String?) {
         let params: [String: Any] = [
             "full_name": name,
             "email": email,
             "lat": userLocation?.latitude ?? 0.0,
-            "lng": userLocation?.longitude ?? 0.0
+            "lng": userLocation?.longitude ?? 0.0,
+            "image": imageURL ?? ""
         ]
-
-        viewModel.updateUserDataWithImage(imageData: imageData, additionalParams: params) { message in
+        // دالتك المعتادة في ViewModel
+        viewModel.updateUserDataWithImage(imageData: nil, additionalParams: params) { message in
             showMessage(message: message)
         }
     }
@@ -225,11 +232,3 @@ struct EditProfileView: View {
         .environmentObject(UserSettings())
         .environmentObject(AppState())
 }
-
-
-
-
-
-
-
-

@@ -1,16 +1,16 @@
-//
-//  RegistrationWorkInfoView.swift
-//  FreelanceApp
-//
-//  Created by Karim OTHMAN on 6.05.2025.
-//
-
 import SwiftUI
 import PopupView
 
 struct RegistrationWorkInfoView: View {
+    @ObservedObject var viewModel: RegistrationViewModel
     @Binding var showSpecialtyPopup: Bool
-    @AppStorage("selectedSpecialty") var selectedMainSpecialty: String = ""
+
+    var selectedCategoriesString: String {
+        viewModel.allCategories
+            .filter { viewModel.selectedCategoryIds.contains($0.id ?? "") }
+            .map { $0.title ?? "" }
+            .joined(separator: "، ")
+    }
 
     var body: some View {
         VStack(spacing: 24) {
@@ -18,11 +18,9 @@ struct RegistrationWorkInfoView: View {
                 title: "تفاصيل العمل",
                 subtitle: "قم بإدخال تفاصيل العمل الصحيحة والتي تُجيدها في مجالك للحصول على فرص أعلى."
             )
-
             VStack(spacing: 16) {
-                // اختيار التخصص الأساسي
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("التخصص الأساسي")
+                    Text("التخصصات المختارة")
                         .font(.subheadline)
                         .foregroundColor(.black)
 
@@ -30,8 +28,15 @@ struct RegistrationWorkInfoView: View {
                         showSpecialtyPopup = true
                     } label: {
                         HStack {
-                            Text(selectedMainSpecialty.isEmpty ? "اختر التخصص الاساسي" : selectedMainSpecialty)
-                                .foregroundColor(selectedMainSpecialty.isEmpty ? .gray : .primaryBlack())
+                            if viewModel.selectedCategoryIds.isEmpty {
+                                Text("اختر تخصص أو أكثر")
+                                    .foregroundColor(.gray)
+                            } else {
+                                Text(selectedCategoriesString)
+                                    .foregroundColor(.primaryBlack())
+                                    .lineLimit(2)
+                                    .truncationMode(.tail)
+                            }
                             Spacer()
                             Image(systemName: "chevron.down")
                                 .foregroundColor(.gray)
@@ -45,24 +50,25 @@ struct RegistrationWorkInfoView: View {
                                 .stroke(Color.gray.opacity(0.3))
                         )
                     }
-                }
 
-                // زر إضافة تخصص آخر
-                Button("+ اضافة تخصص اخر") {
-                    // لاحقاً يمكن تنفيذ إضافة تخصصات فرعية هنا
                 }
-                .foregroundColor(Color.orangeD67200())
-                .font(.footnote)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-
             Spacer()
         }
         .padding()
         .background(Color.background())
         .environment(\.layoutDirection, .rightToLeft)
+        .onAppear {
+            if viewModel.allCategories.isEmpty {
+                viewModel.getMainCategories(q: "")
+            }
+        }
         .popup(isPresented: $showSpecialtyPopup) {
-            SpecialtySelectionPopup(isPresented: $showSpecialtyPopup)
+            SpecialtySelectionPopup(
+                isPresented: $showSpecialtyPopup,
+                categories: viewModel.allCategories,
+                selectedCategoryIds: $viewModel.selectedCategoryIds
+            )
         } customize: {
             $0
                 .type(.default)
@@ -78,5 +84,12 @@ struct RegistrationWorkInfoView: View {
 }
 
 #Preview {
-    RegistrationWorkInfoView(showSpecialtyPopup: .constant(false))
+    let vm = RegistrationViewModel(errorHandling: ErrorHandling())
+    // عينة بيانات للتجربة في البرفيو
+    vm.allCategories = [
+        Category(id: "1", title: "مصمم", description: nil, image: nil, sub: []),
+        Category(id: "2", title: "مهندس برمجيات", description: nil, image: nil, sub: [])
+    ]
+    vm.selectedCategoryIds = ["1"]
+    return RegistrationWorkInfoView(viewModel: vm, showSpecialtyPopup: .constant(false))
 }

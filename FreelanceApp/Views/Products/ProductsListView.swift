@@ -97,7 +97,7 @@ struct ProductsListView: View {
                         Image("ic_back")
                     }
 
-                    Text(specialCategory?.localizedName ?? "")
+                    Text(specialCategory?.title ?? "")
                         .customFont(weight: .bold, size: 20)
                         .foregroundColor(Color.primaryBlack())
                 }
