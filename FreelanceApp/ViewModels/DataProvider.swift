@@ -332,3 +332,54 @@ class DataProvider {
         }
     }
 }
+
+extension DataProvider {
+    /// دالة ترسل أي Struct مشفر Encodable (requestBody) لأي endpoint يدعم JSON
+    func sendRequest<T: Encodable, R: Decodable>(
+        endpoint: Endpoint,
+        body: T,
+        responseType: R.Type,
+        completion: @escaping (Result<R, Error>) -> Void
+    ) {
+        // حضر البيانات كـ JSON Data
+        guard let url = URL(string: endpoint.toAPIEndpoint().fullURL) else {
+            completion(.failure(APIClient.APIError.customError(message: "Invalid URL")))
+            return
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = endpoint.toAPIEndpoint().method.rawValue
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        for header in endpoint.toAPIEndpoint().headers {
+            request.setValue(header.value, forHTTPHeaderField: header.name)
+        }
+
+        // حوّل الجسم إلى JSON
+        do {
+            let jsonData = try JSONEncoder().encode(body)
+            request.httpBody = jsonData
+        } catch {
+            completion(.failure(error))
+            return
+        }
+
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    completion(.failure(error))
+                    return
+                }
+                guard let data = data else {
+                    completion(.failure(APIClient.APIError.invalidData))
+                    return
+                }
+                do {
+                    let decoded = try JSONDecoder().decode(R.self, from: data)
+                    completion(.success(decoded))
+                } catch {
+                    completion(.failure(error))
+                }
+            }
+        }
+        task.resume()
+    }
+}

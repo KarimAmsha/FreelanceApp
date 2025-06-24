@@ -1,27 +1,29 @@
 import SwiftUI
 
 // Enum steps for registration
-enum RegistrationStep: Int {
+enum RegistrationStep: Int, CaseIterable {
     case role, personalInfo, workInfo, identity, confirmPhone
 }
 
 struct RegistrationFlowView: View {
-    @State private var selectedRole: UserRole? = .company
     @State private var step: RegistrationStep = .role
     @State private var showSpecialtyPopup = false
     @State private var showPrivacySheet = false
     @State private var showSuccessPopup = false
     @State private var agreedToPrivacy = false
+
     @EnvironmentObject var appState: AppState
+    @StateObject private var regViewModel = RegistrationViewModel(errorHandling: ErrorHandling())
+    @StateObject var mediaVM = MediaPickerViewModel()
+
+    // الخطوات بناءً على الدور
     var steps: [RegistrationStep] {
-        if selectedRole == .personal {
+        if regViewModel.selectedRole == .personal {
             return [.role, .personalInfo, .confirmPhone]
         } else {
             return [.role, .personalInfo, .workInfo, .identity, .confirmPhone]
         }
     }
-    @StateObject private var regViewModel = RegistrationViewModel(errorHandling: ErrorHandling())
-    @StateObject var mediaVM = MediaPickerViewModel()
 
     var body: some View {
         ZStack {
@@ -29,7 +31,7 @@ struct RegistrationFlowView: View {
                 StepTabsView(currentStep: step, steps: steps)
                     .padding(.top)
 
-                Spacer()
+                Spacer(minLength: 10)
 
                 ZStack {
                     switch step {
@@ -50,8 +52,9 @@ struct RegistrationFlowView: View {
                 .animation(.easeInOut, value: step)
                 .transition(.slide)
 
-                Spacer()
+                Spacer(minLength: 10)
 
+                // الأزرار في الأسفل
                 HStack(spacing: 12) {
                     if step != .role {
                         SecondaryActionButton(title: "رجوع") {
@@ -70,11 +73,18 @@ struct RegistrationFlowView: View {
                         }
                     }
                 }
-                .padding()
+                .padding(.bottom)
             }
             .padding(.horizontal)
             .background(Color.background())
             .environment(\.layoutDirection, .rightToLeft)
+            .overlay(
+                MessageAlertObserverView(
+                    message: $regViewModel.errorMessage,
+                    alertType: .constant(.error)
+                )
+            )
+            // نافذة النجاح
             .popup(isPresented: $showSuccessPopup) {
                 SuccessSubmissionView(isPresented: $showSuccessPopup)
                     .environmentObject(appState)
@@ -95,21 +105,49 @@ struct RegistrationFlowView: View {
         }
     }
 
+    // --- فالديشن & انتقال للخطوة التالية ---
     private func goToNext() {
+        regViewModel.errorMessage = nil
+
+        // الفالديشن في كل خطوة حسب المطلوب
+        switch step {
+        case .personalInfo:
+            if regViewModel.full_name.trimmingCharacters(in: .whitespaces).isEmpty ||
+                regViewModel.phone_number.trimmingCharacters(in: .whitespaces).isEmpty {
+                regViewModel.errorMessage = "يرجى تعبئة جميع الحقول المطلوبة"
+                return
+            }
+        case .workInfo:
+            if regViewModel.selectedCategoryIds.isEmpty {
+                regViewModel.errorMessage = "يرجى اختيار التخصص"
+                return
+            }
+        case .identity:
+            if regViewModel.imageURL == nil || regViewModel.idImageURL == nil {
+                regViewModel.errorMessage = "يرجى رفع صورة شخصية وصورة هوية"
+                return
+            }
+        default:
+            break
+        }
+
+        // انتقل للخطوة التالية إذا لم يكن هناك خطأ
         if let currentIndex = steps.firstIndex(of: step),
-           currentIndex + 1 < steps.count {
+            currentIndex + 1 < steps.count {
             step = steps[currentIndex + 1]
         }
     }
 
     private func goToPrevious() {
+        regViewModel.errorMessage = nil
         if let currentIndex = steps.firstIndex(of: step),
-           currentIndex > 0 {
+            currentIndex > 0 {
             step = steps[currentIndex - 1]
         }
     }
 }
 
+// --- شريط الخطوات ---
 struct StepTabsView: View {
     var currentStep: RegistrationStep
     var steps: [RegistrationStep]
@@ -134,7 +172,6 @@ struct StepTabsView: View {
         }
     }
 }
-
 
 #Preview {
     RegistrationFlowView()
