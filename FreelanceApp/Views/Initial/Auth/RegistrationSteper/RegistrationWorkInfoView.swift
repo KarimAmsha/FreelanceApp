@@ -60,7 +60,7 @@ struct RegistrationWorkInfoView: View {
         .environment(\.layoutDirection, .rightToLeft)
         .onAppear {
             if viewModel.allCategories.isEmpty {
-                viewModel.getMainCategories(q: "")
+                viewModel.getMainCategories()
             }
         }
         .popup(isPresented: $showSpecialtyPopup) {

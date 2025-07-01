@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ConfirmPhoneView: View {
-    @State var code = ""
+    @ObservedObject var regViewModel: RegistrationViewModel
     @FocusState private var focusedField: Int?
     @State private var totalSeconds = 59
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -26,10 +26,10 @@ struct ConfirmPhoneView: View {
                 subtitle: "قم بإدخال رمز التفعيل المرسل الى رقم هاتفك"
             )
 
-            Text("+970 594 0700 68")
+            Text(regViewModel.phone_number.hasPrefix("+") ? regViewModel.phone_number : "+\(regViewModel.phone_number)")
                 .font(.headline)
 
-            OtpFormFieldView(combinedPins: $code)
+            OtpFormFieldView(combinedPins: $regViewModel.otp)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .disabled(viewModel.isLoading)
                 .environment(\.layoutDirection, .leftToRight)
@@ -66,24 +66,6 @@ struct ConfirmPhoneView: View {
         .environment(\.layoutDirection, .rightToLeft)
     }
     
-    private func verify() {
-        let params = [
-            "id": appState.userId,
-            "verify_code": code,
-            "phone_number": appState.phoneNumber,
-            "by": appState.referalUrl?.lastPathComponent ?? ""
-        ] as [String : Any]
-
-        viewModel.verify(params: params) { profileCompleted, token in
-            if profileCompleted {
-                settings.loggedIn = true
-                onComplete?()
-            } else {
-//                loginStatus = .profile(appState.token)
-            }
-        }
-    }
-
     private func resendCode() {
         let params = ["id": appState.userId] as [String : Any]
         viewModel.resend(params: params) {}
@@ -91,7 +73,7 @@ struct ConfirmPhoneView: View {
 }
 
 #Preview {
-    ConfirmPhoneView()
+    ConfirmPhoneView(regViewModel: RegistrationViewModel(errorHandling: ErrorHandling()))
         .environmentObject(AppState())
         .environmentObject(UserSettings())
 }

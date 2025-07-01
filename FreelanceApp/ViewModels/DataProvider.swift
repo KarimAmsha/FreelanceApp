@@ -41,7 +41,7 @@ class DataProvider {
         case addComplain(params: [String: Any], token: String)
         case createReferal(token : String)
         case checkCoupon(params: [String: Any], token: String)
-        case getCategories(q: String?)
+        case getCategories
         case addAddress(params: [String: Any], token: String)
         case updateAddress(params: [String: Any], token: String)
         case deleteAddress(id: String, token: String)
@@ -145,8 +145,8 @@ class DataProvider {
                 return .createReferal(token: token)
             case .checkCoupon(let params, let token):
                 return .checkCoupon(params: params, token: token)
-            case .getCategories(let q):
-                return .getCategories(q: q)
+            case .getCategories:
+                return .getCategories
             case .addAddress(let params, let token):
                 return .addAddress(params: params, token: token)
             case .updateAddress(let params, let token):

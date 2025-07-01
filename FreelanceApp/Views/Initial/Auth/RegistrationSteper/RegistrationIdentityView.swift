@@ -13,54 +13,58 @@ struct RegistrationIdentityView: View {
                 title: "اثبات الهوية",
                 subtitle: "قم برفع صورتك وصورة هويتك."
             )
-            VStack(spacing: 16) {
-                UploadBox(
-                    title: mediaVM.getImage(for: .profileImage) == nil ? "قم بالضغط لرفع صورتك الشخصية" : "تم اختيار الصورة الشخصية",
-                    image: mediaVM.getImage(for: .profileImage),
-                    isUploading: uploadingProfile,
-                    onTap: { mediaVM.isPresentingPickerFor = .profileImage },
-                    onUpload: {
-                        if let image = mediaVM.getImage(for: .profileImage) {
-                            uploadingProfile = true
-                            FirestoreService.shared.uploadImageWithThumbnail(image: image, id: viewModel.phone_number, imageName: "profile") { url, success in
-                                uploadingProfile = false
-                                if success, let url = url {
-                                    viewModel.imageURL = url
+
+            GeometryReader { geometry in
+                VStack(spacing: 16) {
+                    UploadBox(
+                        title: mediaVM.getImage(for: .profileImage) == nil ? "قم بالضغط لرفع صورتك الشخصية" : "تم اختيار الصورة الشخصية",
+                        image: mediaVM.getImage(for: .profileImage),
+                        isUploading: uploadingProfile,
+                        onTap: { mediaVM.isPresentingPickerFor = .profileImage },
+                        onUpload: {
+                            if let image = mediaVM.getImage(for: .profileImage) {
+                                uploadingProfile = true
+                                FirestoreService.shared.uploadImageWithThumbnail(image: image, id: viewModel.phone_number, imageName: "profile") { url, success in
+                                    uploadingProfile = false
+                                    if success, let url = url {
+                                        viewModel.imageURL = url
+                                    }
                                 }
                             }
-                        }
-                    },
-                    onRemove: { mediaVM.removeMedia(for: .profileImage) }
-                )
-                UploadBox(
-                    title: mediaVM.getImage(for: .idImage) == nil ? "قم بالضغط لرفع صورة هويتك" : "تم اختيار صورة الهوية",
-                    image: mediaVM.getImage(for: .idImage),
-                    isUploading: uploadingID,
-                    onTap: { mediaVM.isPresentingPickerFor = .idImage },
-                    onUpload: {
-                        if let image = mediaVM.getImage(for: .idImage) {
-                            uploadingID = true
-                            FirestoreService.shared.uploadImageWithThumbnail(image: image, id: viewModel.phone_number, imageName: "id_card") { url, success in
-                                uploadingID = false
-                                if success, let url = url {
-                                    viewModel.idImageURL = url
+                        },
+                        onRemove: { mediaVM.removeMedia(for: .profileImage) }
+                    )
+                    .frame(maxHeight: (geometry.size.height - 16) / 2)
+
+                    UploadBox(
+                        title: mediaVM.getImage(for: .idImage) == nil ? "قم بالضغط لرفع صورة هويتك" : "تم اختيار صورة الهوية",
+                        image: mediaVM.getImage(for: .idImage),
+                        isUploading: uploadingID,
+                        onTap: { mediaVM.isPresentingPickerFor = .idImage },
+                        onUpload: {
+                            if let image = mediaVM.getImage(for: .idImage) {
+                                uploadingID = true
+                                FirestoreService.shared.uploadImageWithThumbnail(image: image, id: viewModel.phone_number, imageName: "id_card") { url, success in
+                                    uploadingID = false
+                                    if success, let url = url {
+                                        viewModel.idImageURL = url
+                                    }
                                 }
                             }
-                        }
-                    },
-                    onRemove: { mediaVM.removeMedia(for: .idImage) }
-                )
+                        },
+                        onRemove: { mediaVM.removeMedia(for: .idImage) }
+                    )
+                    .frame(maxHeight: (geometry.size.height - 16) / 2)
+                }
+                .frame(maxHeight: .infinity)
             }
-            Spacer()
         }
-        // لا حاجة لـ actionSheet لأنك فقط صور، مجرد تفتح البيكر مباشرة
         .sheet(item: $mediaVM.isPresentingPickerFor) { type in
             ImageVideoPicker(
                 sourceType: mediaVM.sourceType,
-                mediaTypes: ["public.image"] // 👈 فقط الصور في هذه الشاشة
+                mediaTypes: ["public.image"]
             ) { img, url in
                 mediaVM.didSelectImage(img)
-                // لن يتم اختيار فيديو هنا أبدًا
             }
         }
         .padding()
@@ -111,13 +115,15 @@ struct UploadBox: View {
                 ProgressView("جاري الرفع...")
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 120)
+        .frame(maxWidth: .infinity, maxHeight: .infinity) // يملأ كل مساحة البوكس
         .background(Color.white)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.gray.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [5]))
         )
         .cornerRadius(12)
+        // أهم سطر يخلي المحتوى بالمنتصف دائمًا:
+        .contentShape(Rectangle()) // يجعل منطقة الضغط وسط البوكس وليس فقط على النص/الصورة
     }
 }
 

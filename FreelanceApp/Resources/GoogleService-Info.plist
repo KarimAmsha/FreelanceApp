@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyAvywhtLB3jeoLbxSJLJtnQoBtwmZqkRM8</string>
+	<string>AIzaSyCTkGsgrcIxzgU6knnRkfprb9eFoaD4BaA</string>
 	<key>GCM_SENDER_ID</key>
-	<string>451705325450</string>
+	<string>673623199313</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>sa.com.Fazaa.Wishy</string>
+	<string>sa.com.Fazaa.Jewar</string>
 	<key>PROJECT_ID</key>
-	<string>wishy-bd623</string>
+	<string>jiwar-8e360</string>
 	<key>STORAGE_BUCKET</key>
-	<string>wishy-bd623.appspot.com</string>
+	<string>jiwar-8e360.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:451705325450:ios:3b4f5de1cc84788a41ea73</string>
+	<string>1:673623199313:ios:ba63858d8da77bbec47270</string>
 </dict>
 </plist>

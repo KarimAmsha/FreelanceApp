@@ -179,30 +179,30 @@ class InitialViewModel: ObservableObject {
     }
     
     func getMainCategories(q: String?) {
-        isLoading = true
-        errorMessage = nil
-        let endpoint = DataProvider.Endpoint.getCategories(q: q)
-        
-        DataProvider.shared.request(endpoint: endpoint, responseType: ArrayAPIResponse<MainCategory>.self)
-            .sink(receiveCompletion: { completion in
-                switch completion {
-                case .finished:
-                    break
-                case .failure(let error):
-                    // Use the centralized error handling component
-                    self.handleAPIError(error)
-                }
-            }, receiveValue: { [weak self] (response: ArrayAPIResponse<MainCategory>) in
-                if response.status {
-                    self?.mainCategoryItems = response.items
-                    self?.errorMessage = nil
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-                self?.isLoading = false
-            })
-            .store(in: &cancellables)
+//        isLoading = true
+//        errorMessage = nil
+//        let endpoint = DataProvider.Endpoint.getCategories(q: q)
+//        
+//        DataProvider.shared.request(endpoint: endpoint, responseType: ArrayAPIResponse<MainCategory>.self)
+//            .sink(receiveCompletion: { completion in
+//                switch completion {
+//                case .finished:
+//                    break
+//                case .failure(let error):
+//                    // Use the centralized error handling component
+//                    self.handleAPIError(error)
+//                }
+//            }, receiveValue: { [weak self] (response: ArrayAPIResponse<MainCategory>) in
+//                if response.status {
+//                    self?.mainCategoryItems = response.items
+//                    self?.errorMessage = nil
+//                } else {
+//                    // Use the centralized error handling component
+//                    self?.handleAPIError(.customError(message: response.message))
+//                }
+//                self?.isLoading = false
+//            })
+//            .store(in: &cancellables)
     }
     
     func fetchContactItems() {

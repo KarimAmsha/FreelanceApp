@@ -60,3 +60,27 @@ struct SubCategory: Identifiable, Codable, Hashable {
         case price, image, title, description
     }
 }
+
+struct CategoriesResponse: Codable {
+    let status: Bool
+    let code: Int?
+    let message: String?
+    let items: CategoriesItems?
+}
+
+struct CategoriesItems: Codable {
+    let category: [Category]
+    let type: [TypeItem]
+}
+
+struct TypeItem: Identifiable, Codable, Hashable {
+    let id: String
+    let title: String?
+    let description: String?
+    let image: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case title, description, image
+    }
+}

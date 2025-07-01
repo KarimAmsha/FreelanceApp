@@ -33,7 +33,7 @@ enum APIEndpoint {
     case addComplain(params: [String: Any], token: String)
     case createReferal(token: String)
     case checkCoupon(params: [String: Any], token: String)
-    case getCategories(q: String?)
+    case getCategories
     case addAddress(params: [String: Any], token: String)
     case updateAddress(params: [String: Any], token: String)
     case deleteAddress(id: String, token: String)
@@ -199,19 +199,8 @@ enum APIEndpoint {
             return "/mobile/user/referal"
         case .checkCoupon:
             return "/mobile/check/coupon"
-        case .getCategories(let q):
-            var params: [String: Any] = [:]
-
-            if let q = q {
-                params["q"] = q
-            }
-            if !params.isEmpty {
-                var url = "/mobile/constant/category?"
-                url += params.map { "\($0.key)=\($0.value)" }.joined(separator: "&")
-                return url
-            } else {
-                return "/mobile/constant/category"
-            }
+        case .getCategories:
+            return "/mobile/constant/category"
         case .addAddress:
             return "/mobile/user/add_address"
         case .updateAddress:

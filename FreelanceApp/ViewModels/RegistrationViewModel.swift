@@ -62,6 +62,7 @@ class RegistrationViewModel: ObservableObject {
 
     // التصنيفات والتخصصات
     @Published var allCategories: [Category] = []
+    @Published var allTypes: [TypeItem] = []
     @Published var selectedCategoryIds: [String] = [] {
         didSet {
             mainSpecialty = allCategories
@@ -76,6 +77,8 @@ class RegistrationViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private let errorHandling: ErrorHandling
     @Published var user: User?
+    @Published var isPhoneVerified: Bool = false
+    @Published var otp: String = ""
 
     var register_type: String {
         selectedRole?.rawValue ?? ""
@@ -114,11 +117,22 @@ class RegistrationViewModel: ObservableObject {
             id_img: idImageURL
         )
     }
+    
+    func toVerifyRequest(verifyCode: String) -> VerifyRequest? {
+        guard let id = user?.id else { return nil }
+        return VerifyRequest(
+            id: id,
+            verify_code: verifyCode,
+            phone_number: phone_number
+        )
+    }
 
     // MARK: - API Methods
 
     func signup(completion: @escaping (Result<User, Error>) -> Void) {
+        errorMessage = nil
         let request = toSignupRequest()
+        print("rrrr \(request)")
         DataProvider.shared.sendRequest(
             endpoint: .register(params: request.asDictionary() ?? [:]),
             body: request,
@@ -129,17 +143,21 @@ class RegistrationViewModel: ObservableObject {
                 if apiResponse.status, let user = apiResponse.items {
                     self.user = user
                     self.handleUserData()
+                    self.errorMessage = nil
                     completion(.success(user))
                 } else {
+                    self.errorMessage = apiResponse.message
                     completion(.failure(APIClient.APIError.customError(message: apiResponse.message)))
                 }
             case .failure(let error):
+                self.errorMessage = error.localizedDescription
                 completion(.failure(error))
             }
         }
     }
 
     func updateProfile(completion: @escaping (Result<User, Error>) -> Void) {
+        errorMessage = nil
         let request = toProfileRequest()
         guard let token = UserSettings.shared.token else {
             completion(.failure(APIClient.APIError.unauthorized))
@@ -155,23 +173,61 @@ class RegistrationViewModel: ObservableObject {
                 if apiResponse.status, let user = apiResponse.items {
                     self.user = user
                     self.handleUserData()
+                    self.errorMessage = nil
                     completion(.success(user))
                 } else {
+                    self.errorMessage = apiResponse.message
                     completion(.failure(APIClient.APIError.customError(message: apiResponse.message)))
                 }
             case .failure(let error):
+                self.errorMessage = error.localizedDescription
                 completion(.failure(error))
+            }
+        }
+    }
+
+    func verifyPhone(verifyCode: String, completion: @escaping (Result<User, Error>) -> Void) {
+        errorMessage = nil
+        isLoading = true
+        guard let request = toVerifyRequest(verifyCode: verifyCode) else {
+            completion(.failure(APIClient.APIError.customError(message: "معرّف المستخدم غير متوفر")))
+            return
+        }
+        DataProvider.shared.sendRequest(
+            endpoint: .verify(params: request.asDictionary() ?? [:]),
+            body: request,
+            responseType: SingleAPIResponse<User>.self
+        ) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                switch result {
+                case .success(let apiResponse):
+                    if apiResponse.status, let user = apiResponse.items {
+                        print("uuuu \(user)")
+                        self?.isPhoneVerified = true
+                        self?.user = user
+                        self?.handleUserData()
+                        self?.errorMessage = nil
+                        completion(.success(user))
+                    } else {
+                        self?.errorMessage = apiResponse.message
+                        completion(.failure(APIClient.APIError.customError(message: apiResponse.message)))
+                    }
+                case .failure(let error):
+                    self?.errorMessage = error.localizedDescription
+                    completion(.failure(error))
+                }
             }
         }
     }
 
     // MARK: - Fetch Categories
 
-    func getMainCategories(q: String?) {
+    func getMainCategories() {
         isLoading = true
         errorMessage = nil
-        let endpoint = DataProvider.Endpoint.getCategories(q: q)
-        DataProvider.shared.request(endpoint: endpoint, responseType: ArrayAPIResponse<Category>.self)
+        let endpoint = DataProvider.Endpoint.getCategories
+        DataProvider.shared.request(endpoint: endpoint, responseType: CategoriesResponse.self)
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished: break
@@ -179,9 +235,10 @@ class RegistrationViewModel: ObservableObject {
                 }
             }, receiveValue: { [weak self] response in
                 if response.status, let items = response.items {
-                    self?.allCategories = items
+                    self?.allCategories = items.category
+                    self?.allTypes = items.type
                 } else {
-                    self?.handleAPIError(.customError(message: response.message))
+                    self?.handleAPIError(.customError(message: response.message ?? ""))
                 }
                 self?.isLoading = false
             })
@@ -233,4 +290,12 @@ extension Encodable {
         guard let data = try? JSONEncoder().encode(self) else { return nil }
         return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
     }
+}
+
+struct EmptyBody: Encodable {}
+
+struct VerifyRequest: Encodable {
+    let id: String
+    let verify_code: String
+    let phone_number: String
 }
