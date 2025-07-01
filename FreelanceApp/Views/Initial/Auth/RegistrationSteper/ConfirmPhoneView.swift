@@ -26,7 +26,7 @@ struct ConfirmPhoneView: View {
                 subtitle: "قم بإدخال رمز التفعيل المرسل الى رقم هاتفك"
             )
 
-            Text(regViewModel.phone_number.hasPrefix("+") ? regViewModel.phone_number : "+\(regViewModel.phone_number)")
+            Text(regViewModel.getCompletePhoneNumber())
                 .font(.headline)
 
             OtpFormFieldView(combinedPins: $regViewModel.otp)

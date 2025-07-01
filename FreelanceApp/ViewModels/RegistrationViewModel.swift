@@ -79,6 +79,7 @@ class RegistrationViewModel: ObservableObject {
     @Published var user: User?
     @Published var isPhoneVerified: Bool = false
     @Published var otp: String = ""
+    @Published var countryCode: String = "966" // أو الكود الافتراضي حسب تطبيقك
 
     var register_type: String {
         selectedRole?.rawValue ?? ""
@@ -92,7 +93,7 @@ class RegistrationViewModel: ObservableObject {
 
     func toSignupRequest() -> SignupRequest {
         SignupRequest(
-            phone_number: phone_number,
+            phone_number: getCompletePhoneNumber(),
             os: os,
             fcmToken: fcmToken,
             lat: lat,
@@ -123,7 +124,7 @@ class RegistrationViewModel: ObservableObject {
         return VerifyRequest(
             id: id,
             verify_code: verifyCode,
-            phone_number: phone_number
+            phone_number: getCompletePhoneNumber()
         )
     }
 
@@ -132,7 +133,6 @@ class RegistrationViewModel: ObservableObject {
     func signup(completion: @escaping (Result<User, Error>) -> Void) {
         errorMessage = nil
         let request = toSignupRequest()
-        print("rrrr \(request)")
         DataProvider.shared.sendRequest(
             endpoint: .register(params: request.asDictionary() ?? [:]),
             body: request,
@@ -142,8 +142,16 @@ class RegistrationViewModel: ObservableObject {
             case .success(let apiResponse):
                 if apiResponse.status, let user = apiResponse.items {
                     self.user = user
-                    self.handleUserData()
-                    self.errorMessage = nil
+                    print("ssss \(user)")
+                    // 👇 هنا الفحص
+                    if !(user.full_name ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        // سجل دخوله وادخله التطبيق مباشرة
+                        self.handleUserData()
+                        DispatchQueue.main.async {
+                            NotificationCenter.default.post(name: .didLoginSuccessfully, object: nil)
+                        }
+                    }
+                    // إذا فارغ يكمل باقي الخطوات
                     completion(.success(user))
                 } else {
                     self.errorMessage = apiResponse.message
@@ -190,32 +198,44 @@ class RegistrationViewModel: ObservableObject {
         errorMessage = nil
         isLoading = true
         guard let request = toVerifyRequest(verifyCode: verifyCode) else {
-            completion(.failure(APIClient.APIError.customError(message: "معرّف المستخدم غير متوفر")))
+            let err = APIClient.APIError.customError(message: "معرّف المستخدم غير متوفر")
+            self.errorMessage = err.localizedDescription
+            completion(.failure(err))
             return
         }
+        print("uuuu \(request)")
+
         DataProvider.shared.sendRequest(
             endpoint: .verify(params: request.asDictionary() ?? [:]),
             body: request,
             responseType: SingleAPIResponse<User>.self
         ) { [weak self] result in
+            print("resultresult \(result)")
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
                 case .success(let apiResponse):
                     if apiResponse.status, let user = apiResponse.items {
-                        print("uuuu \(user)")
                         self?.isPhoneVerified = true
                         self?.user = user
                         self?.handleUserData()
                         self?.errorMessage = nil
                         completion(.success(user))
                     } else {
-                        self?.errorMessage = apiResponse.message
-                        completion(.failure(APIClient.APIError.customError(message: apiResponse.message)))
+                        // هنا دائما تأكد الرسالة بتنعرض كما هي من السيرفر
+                        let err = APIClient.APIError.customError(message: apiResponse.message)
+                        self?.errorMessage = err.localizedDescription
+                        completion(.failure(err))
                     }
                 case .failure(let error):
-                    self?.errorMessage = error.localizedDescription
-                    completion(.failure(error))
+                    // افحص هل الخطأ من نوع APIError ليعرض الرسالة بشكل صحيح
+                    if let apiError = error as? APIClient.APIError {
+                        self?.errorMessage = apiError.localizedDescription
+                        completion(.failure(apiError))
+                    } else {
+                        self?.errorMessage = error.localizedDescription
+                        completion(.failure(error))
+                    }
                 }
             }
         }
@@ -298,4 +318,20 @@ struct VerifyRequest: Encodable {
     let id: String
     let verify_code: String
     let phone_number: String
+}
+
+extension RegistrationViewModel {
+    func getCompletePhoneNumber() -> String {
+        let cleanedMobile = phone_number.replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "+", with: "")
+        let cleanedCode = countryCode.replacingOccurrences(of: "+", with: "")
+        if cleanedMobile.hasPrefix(cleanedCode) {
+            return cleanedMobile // الرقم مكتمل أصلاً
+        } else {
+            return "\(cleanedCode)\(cleanedMobile)"
+        }
+    }
+}
+
+extension Notification.Name {
+    static let didLoginSuccessfully = Notification.Name("didLoginSuccessfully")
 }

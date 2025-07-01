@@ -55,7 +55,7 @@ struct SpecialtySelectionPopup: View {
                 .background(Color.primary())
                 .foregroundColor(.white)
                 .cornerRadius(12)
-                .padding(.top)
+                .padding(.vertical)
             }
         }
         .padding()

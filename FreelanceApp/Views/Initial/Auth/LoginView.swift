@@ -44,7 +44,6 @@ struct LoginView: View {
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.leading)
                     }
-                    .padding(.top, 40)
 
                     MobileView(mobile: $mobile, presentSheet: $presentSheet)
 

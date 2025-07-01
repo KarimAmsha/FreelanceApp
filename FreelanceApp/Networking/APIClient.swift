@@ -13,7 +13,8 @@ class APIClient {
     static let shared = APIClient()
     private var activeRequest: DataRequest?
     
-    // MARK: Error Handling
+    // MARK: - API Error Enum with Descriptions
+
     enum APIError: Error {
         case networkError(AFError)
         case invalidData
@@ -26,6 +27,33 @@ class APIClient {
         case invalidToken
         case customError(message: String)
         case unknownError
+
+        var localizedDescription: String {
+            switch self {
+            case .networkError(let afError):
+                return "حدث خطأ في الاتصال: \(afError.localizedDescription)"
+            case .invalidData:
+                return "البيانات المستلمة غير صالحة"
+            case .decodingError(let decodingError):
+                return "فشل في معالجة البيانات: \(decodingError.localizedDescription)"
+            case .requestError(let afError):
+                return "خطأ في الطلب: \(afError.localizedDescription)"
+            case .unauthorized:
+                return "أنت غير مصرح لك بالقيام بهذه العملية"
+            case .notFound:
+                return "العنصر المطلوب غير موجود"
+            case .badRequest:
+                return "طلب غير صالح"
+            case .serverError:
+                return "خطأ من الخادم. حاول لاحقًا"
+            case .invalidToken:
+                return "رمز الدخول غير صالح أو منتهي"
+            case .customError(let message):
+                return message
+            case .unknownError:
+                return "حدث خطأ غير معروف"
+            }
+        }
     }
 
     // MARK: Common Request Function

@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseMessaging
 
 // Enum steps for registration
 enum RegistrationStep: Int, CaseIterable {
@@ -95,12 +96,19 @@ struct RegistrationFlowView: View {
                 showSuccessPopup = true
             }
         }
+        .onAppear {
+            Messaging.messaging().token { token, error in
+                if let token = token {
+                    regViewModel.fcmToken = token
+                }
+            }
+        }
     }
     
     // --- فالديشن & انتقال للخطوة التالية ---
     private func goToNext() {
         regViewModel.errorMessage = nil
-
+        
         switch step {
         case .personalInfo:
             if regViewModel.full_name.trimmingCharacters(in: .whitespaces).isEmpty ||
@@ -141,7 +149,7 @@ struct RegistrationFlowView: View {
             }
         }
     }
-
+    
     private func goToPrevious() {
         regViewModel.errorMessage = nil
         if let currentIndex = steps.firstIndex(of: step),
@@ -161,8 +169,57 @@ struct RegistrationFlowView: View {
     }
     
     private func handleButtonAction() {
-        // الخطوة الأخيرة: إرسال البيانات النهائية بعد الموافقة على سياسة الخصوصية
-        if step == steps.last {
+        // 1- إذا الخطوة الحالية هي confirmPhone والأخيرة بنفس الوقت
+        if step == .confirmPhone && step == steps.last {
+            // تحقق من كود التفعيل
+            guard regViewModel.otp.trimmingCharacters(in: .whitespacesAndNewlines).count >= 4 else {
+                regViewModel.errorMessage = "يرجى إدخال رمز التفعيل الصحيح"
+                return
+            }
+            if !regViewModel.isPhoneVerified {
+                regViewModel.verifyPhone(verifyCode: regViewModel.otp) { result in
+                    switch result {
+                    case .success:
+                        regViewModel.isPhoneVerified = true
+                        // بعد نجاح التحقق مباشرة نكمل التسجيل (إرسال الملف الشخصي)
+                        if agreedToPrivacy {
+                            regViewModel.updateProfile { result in
+                                switch result {
+                                case .success:
+                                    showSuccessPopup = true
+                                case .failure(let error):
+                                    regViewModel.errorMessage = error.localizedDescription
+                                }
+                            }
+                        } else {
+                            showPrivacySheet = true
+                        }
+                    case .failure(let error):
+                        if let apiError = error as? APIClient.APIError {
+                            regViewModel.errorMessage = apiError.localizedDescription
+                        } else {
+                            regViewModel.errorMessage = error.localizedDescription
+                        }
+                    }
+                }
+            } else {
+                // إذا كان الرقم متحقق منه مسبقًا، مباشرة نكمل نفس البلوك
+                if agreedToPrivacy {
+                    regViewModel.updateProfile { result in
+                        switch result {
+                        case .success:
+                            showSuccessPopup = true
+                        case .failure(let error):
+                            regViewModel.errorMessage = error.localizedDescription
+                        }
+                    }
+                } else {
+                    showPrivacySheet = true
+                }
+            }
+        }
+        // 2- إذا الخطوة الأخيرة ليست confirmPhone
+        else if step == steps.last {
             if agreedToPrivacy {
                 regViewModel.updateProfile { result in
                     switch result {
@@ -176,14 +233,12 @@ struct RegistrationFlowView: View {
                 showPrivacySheet = true
             }
         }
-        // خطوة تأكيد الهاتف
+        // 3- إذا الخطوة confirmPhone (وليست الأخيرة)
         else if step == .confirmPhone {
-            // تحقق من أن المستخدم أدخل كود صالح (مثلاً 4 أو 6 أرقام)
             guard regViewModel.otp.trimmingCharacters(in: .whitespacesAndNewlines).count >= 4 else {
                 regViewModel.errorMessage = "يرجى إدخال رمز التفعيل الصحيح"
                 return
             }
-            // لم يتم التحقق بعد
             if !regViewModel.isPhoneVerified {
                 regViewModel.verifyPhone(verifyCode: regViewModel.otp) { result in
                     switch result {
@@ -191,15 +246,18 @@ struct RegistrationFlowView: View {
                         regViewModel.isPhoneVerified = true
                         goToNext()
                     case .failure(let error):
-                        regViewModel.errorMessage = error.localizedDescription
+                        if let apiError = error as? APIClient.APIError {
+                            regViewModel.errorMessage = apiError.localizedDescription
+                        } else {
+                            regViewModel.errorMessage = error.localizedDescription
+                        }
                     }
                 }
             } else {
-                // إذا كان الرقم مُتحقق منه مسبقًا انتقل للخطوة التالية
                 goToNext()
             }
         }
-        // أي خطوة أخرى (انتقال عادي مع الفالديشن من goToNext)
+        // 4- أي خطوة أخرى
         else {
             goToNext()
         }

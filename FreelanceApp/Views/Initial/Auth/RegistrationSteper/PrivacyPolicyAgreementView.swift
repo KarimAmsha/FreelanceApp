@@ -4,6 +4,9 @@ struct PrivacyPolicyAgreementView: View {
     @Binding var showSheet: Bool
     var onAgree: () -> Void
 
+    @State private var contentHeight: CGFloat = 0
+    @StateObject private var initialViewModel = InitialViewModel(errorHandling: ErrorHandling())
+
     var body: some View {
         VStack(spacing: 16) {
             HStack {
@@ -24,18 +27,17 @@ struct PrivacyPolicyAgreementView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    ForEach(1...3, id: \.self) { section in
-                        Text("البند \(section)")
-                            .font(.headline)
-                            .foregroundColor(.black)
-
-                        VStack(alignment: .trailing, spacing: 8) {
-                            ForEach(1...2, id: \.self) { _ in
-                                Text("هذا النص هو مثال للنص يمكن أن يستبدل في نفس المساحة. لقد تم توليد هذا النص من مولد النص العربي.")
-                                    .font(.footnote)
-                                    .foregroundColor(.gray)
-                            }
-                        }
+                    if let item = initialViewModel.constantsItems?.first(where: { $0.constantType == .privacy }) {
+                        HTMLView(html: item.Content ?? "", contentHeight: $contentHeight)
+                            .frame(height: contentHeight)
+                    } else if initialViewModel.isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    } else {
+                        Text("لا يوجد سياسة خصوصية متاحة حالياً")
+                            .foregroundColor(.gray)
+                            .font(.footnote)
+                            .frame(maxWidth: .infinity, alignment: .center)
                     }
                 }
                 .padding(.vertical)
@@ -45,10 +47,14 @@ struct PrivacyPolicyAgreementView: View {
                 onAgree()
                 showSheet = false
             }
+            .padding(.vertical)
         }
         .padding()
         .background(Color.white)
         .environment(\.layoutDirection, .rightToLeft)
+        .onAppear {
+            initialViewModel.fetchConstantsItems()
+        }
     }
 }
 
