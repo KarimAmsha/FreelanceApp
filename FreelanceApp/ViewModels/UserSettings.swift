@@ -50,6 +50,11 @@ class UserSettings: ObservableObject {
             token = storedUser.token
             loggedIn = true
         }
+        // 👇 استرجاع الـrole المحفوظ
+        if let roleString = UserDefaults.standard.string(forKey: Keys.userRole),
+           let role = UserRole(rawValue: roleString) {
+            userRole = role
+        }
     }
     
     func login(user: User, id: String, token: String) {
@@ -57,6 +62,11 @@ class UserSettings: ObservableObject {
         self.id = id
         self.token = token
         loggedIn = true
+        // 👇 الخطوة الأهم:
+        if let role = user.register_type, let userRole = UserRole(rawValue: role) {
+            self.userRole = userRole
+            UserDefaults.standard.set(role, forKey: Keys.userRole)
+        }
         saveUserToStorage(user: user, id: id, token: token)
     }
     
@@ -103,6 +113,7 @@ class UserSettings: ObservableObject {
         UserDefaults.standard.removeObject(forKey:  Keys.id)
         UserDefaults.standard.removeObject(forKey:  Keys.token)
         UserDefaults.standard.removeObject(forKey: Keys.fcmToken)
+        UserDefaults.standard.removeObject(forKey: Keys.userRole)
     }
 }
 
@@ -112,5 +123,6 @@ extension UserSettings {
         static let userData = "userData"
         static let token = "token"
         static let fcmToken = "fcmToken"
+        static let userRole = "userRole"
     }
 }

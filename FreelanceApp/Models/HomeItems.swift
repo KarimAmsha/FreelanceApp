@@ -7,8 +7,32 @@
 
 import SwiftUI
 
-struct HomeItems: Codable, Hashable {
-    let category: [Category]?
-    let slider: [Slider]?
-    let whatsApp: WhatsApp?
+struct HomeItems: Codable {
+    let category: [CategoryItem]?
+    let slider: [SliderItem]?
+}
+
+struct CategoryItem: Codable, Identifiable {
+    let id: String
+    let title: String
+    let description: String?
+    let image: String?
+    let users: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case title, description, image, users
+    }
+}
+
+struct SliderItem: Codable, Identifiable {
+    let id: String
+    let image: String
+    let title: String?
+    let description: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case image, title, description
+    }
 }

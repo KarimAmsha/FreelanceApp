@@ -1,47 +1,64 @@
-//
-//  FreelancerProfileView.swift
-//  FreelanceApp
-//
-//  Created by Karim OTHMAN on 8.05.2025.
-//
-
 import SwiftUI
+
+// Enum for Tabs
+enum FreelancerTab {
+    case services, portfolio, about, reviews
+}
 
 struct FreelancerProfileView: View {
     @EnvironmentObject var appRouter: AppRouter
+    let freelancer: Freelancer
     @State private var selectedTab: FreelancerTab = .services
+
+    // استخدم هذا لتفادي مشكلة type-check
+    private var selectedTabView: some View {
+        switch selectedTab {
+        case .services:
+            return AnyView(
+                FreelancerServicesTab(freelancer: freelancer) {
+                    appRouter.navigate(to: .serviceDetails)
+                }
+            )
+        case .portfolio:
+            return AnyView(FreelancerPortfolioTab(freelancer: freelancer))
+        case .about:
+            return AnyView(FreelancerAboutTab(freelancer: freelancer))
+        case .reviews:
+            return AnyView(FreelancerReviewsTab(freelancer: freelancer))
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 16) {
-                    // MARK: - Header Profile Info
+                    // Header Profile Info
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("احمد العزايزة")
+                            Text(freelancer.full_name ?? "اسم غير متوفر")
                                 .font(.headline)
-                            Text("UXUI Designer")
+                            Text(freelancer.title ?? "")
                                 .font(.caption)
                                 .foregroundColor(.gray)
-                            Text("انضم بتاريخ: 20 أكتوبر 2024")
-                                .font(.caption2)
-                                .foregroundColor(.gray)
+                            if let joined = freelancer.joinedAtFormatted {
+                                Text("انضم بتاريخ: \(joined)")
+                                    .font(.caption2)
+                                    .foregroundColor(.gray)
+                            }
                         }
-
                         Spacer()
-
                         AsyncImageView(
                             width: 50,
                             height: 50,
                             cornerRadius: 25,
-                            imageURL: URL(string: "https://randomuser.me/api/portraits/men/32.jpg"),
+                            imageURL: freelancer.image?.toURL(),
                             placeholder: Image(systemName: "person.crop.circle.fill"),
                             contentMode: .fill
                         )
                     }
                     .padding(.horizontal)
 
-                    // MARK: - Profile Completion
+                    // Profile Completion (مثال ثابت، عدل لو عندك داتا)
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("اكمال الملف الشخصي")
@@ -50,13 +67,12 @@ struct FreelancerProfileView: View {
                             Text("95%")
                                 .font(.caption)
                         }
-
                         ProgressView(value: 0.95)
                             .progressViewStyle(LinearProgressViewStyle(tint: .yellow))
                     }
                     .padding(.horizontal)
 
-                    // MARK: - Tabs
+                    // Tabs
                     HStack(spacing: 0) {
                         TabItem(title: "الخدمات", selected: selectedTab == .services)
                             .onTapGesture { selectedTab = .services }
@@ -69,20 +85,8 @@ struct FreelancerProfileView: View {
                     }
                     .padding(.top)
 
-                    // MARK: - Tab Content
-                    switch selectedTab {
-                    case .services:
-                        FreelancerServicesTab()
-                            .onTapGesture {
-                                appRouter.navigate(to: .serviceDetails)
-                            }
-                    case .portfolio:
-                        FreelancerPortfolioTab()
-                    case .about:
-                        FreelancerAboutTab()
-                    case .reviews:
-                        FreelancerReviewsTab()
-                    }
+                    // Tab Content
+                    selectedTabView
                 }
                 .padding(.bottom, 16)
             }
@@ -95,15 +99,14 @@ struct FreelancerProfileView: View {
                     Button {
                         appRouter.navigateBack()
                     } label: {
-                        Image("ic_back")
+                        Image(systemName: "chevron.backward")
+                            .foregroundColor(.black)
                     }
-
-                    Text("احمد العزايزة")
+                    Text(freelancer.full_name ?? "اسم غير متوفر")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.black)
                 }
             }
-
             ToolbarItem(placement: .navigationBarTrailing) {
                 Image("ic_bell")
                     .onTapGesture {
@@ -133,35 +136,27 @@ struct TabItem: View {
     }
 }
 
-#Preview {
-    FreelancerProfileView()
-        .environmentObject(AppState())
-}
-
-enum FreelancerTab {
-    case services, portfolio, about, reviews
-}
-
 struct FreelancerServicesTab: View {
+    let freelancer: Freelancer
+    var onServiceTap: (() -> Void)? = nil
+
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-            ForEach(0..<4) { _ in
+            ForEach(freelancer.services ?? []) { service in
                 VStack(alignment: .leading, spacing: 8) {
                     AsyncImageView(
                         width: nil,
                         height: 120,
                         cornerRadius: 8,
-                        imageURL: URL(string: "https://picsum.photos/300/200"),
+                        imageURL: service.image?.toURL(),
                         placeholder: Image(systemName: "photo"),
                         contentMode: .fill
                     )
-
-                    Text("تصميم بوستات لمنصات السوشيال لليبيا و مواقع الويب")
+                    Text(service.title ?? "")
                         .font(.system(size: 12))
                         .lineLimit(2)
-
                     HStack {
-                        Text("$10")
+                        Text("$\(Int(service.price ?? 0))")
                             .font(.caption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -169,7 +164,7 @@ struct FreelancerServicesTab: View {
                             .foregroundColor(.white)
                             .cornerRadius(8)
                         Spacer()
-                        Label("4.8", systemImage: "star.fill")
+                        Label(String(format: "%.1f", service.rating ?? 0.0), systemImage: "star.fill")
                             .font(.caption)
                             .foregroundColor(.orange)
                     }
@@ -178,6 +173,9 @@ struct FreelancerServicesTab: View {
                 .background(Color.white)
                 .cornerRadius(12)
                 .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+                .onTapGesture {
+                    onServiceTap?()
+                }
             }
         }
         .padding(.horizontal)
@@ -185,32 +183,28 @@ struct FreelancerServicesTab: View {
 }
 
 struct FreelancerPortfolioTab: View {
+    let freelancer: Freelancer
     var body: some View {
         VStack(spacing: 8) {
-            ForEach(0..<3) { index in
+            ForEach(freelancer.portfolio ?? []) { item in
                 HStack(spacing: 12) {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(width: 80, height: 80)
-                        .cornerRadius(8)
-                        .overlay(
-                            Image(systemName: "photo")
-                                .resizable()
-                                .scaledToFit()
-                                .padding(20)
-                                .foregroundColor(.gray)
-                        )
-
+                    AsyncImageView(
+                        width: 80,
+                        height: 80,
+                        cornerRadius: 8,
+                        imageURL: item.image?.toURL(),
+                        placeholder: Image(systemName: "photo"),
+                        contentMode: .fill
+                    )
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("مشروع رقم \(index + 1)")
+                        Text(item.title ?? "")
                             .font(.subheadline)
                             .bold()
-                        Text("نبذة قصيرة عن المشروع وتفاصيله ومجاله.")
+                        Text(item.description ?? "")
                             .font(.caption)
                             .foregroundColor(.gray)
                             .lineLimit(2)
                     }
-
                     Spacer()
                 }
                 .padding(8)
@@ -224,36 +218,35 @@ struct FreelancerPortfolioTab: View {
 }
 
 struct FreelancerAboutTab: View {
+    let freelancer: Freelancer
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("نبذة عن الفريلانسر")
                 .font(.headline)
-            Text("هذا النص هو مثال لنص يمكن أن يستبدل في نفس المساحة. لقد تم توليد هذا النص من مولد النص العربي.")
+            Text(freelancer.bio ?? "هذا النص هو مثال لنص يمكن أن يستبدل في نفس المساحة.")
                 .font(.body)
                 .foregroundColor(.gray)
 
             Divider().padding(.vertical, 8)
-
             Text("احصائيات")
                 .font(.headline)
-
             HStack {
                 VStack {
-                    Text("+1500")
+                    Text("+\(freelancer.completedProjects ?? 0)")
                         .bold()
                     Text("مشروع")
                         .font(.caption)
                 }
                 Spacer()
                 VStack {
-                    Text("+1200")
+                    Text("+\(freelancer.clientsCount ?? 0)")
                         .bold()
                     Text("عميل")
                         .font(.caption)
                 }
                 Spacer()
                 VStack {
-                    Text("4.8★")
+                    Text(String(format: "%.1f★", freelancer.rating ?? 0.0))
                         .bold()
                     Text("تقييم")
                         .font(.caption)
@@ -265,29 +258,33 @@ struct FreelancerAboutTab: View {
 }
 
 struct FreelancerReviewsTab: View {
+    let freelancer: Freelancer
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ForEach(0..<3) { _ in
+            ForEach(freelancer.reviews ?? []) { review in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Circle()
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(width: 40, height: 40)
-                            .overlay(Image(systemName: "person.fill"))
-
+                        AsyncImageView(
+                            width: 40,
+                            height: 40,
+                            cornerRadius: 20,
+                            imageURL: review.userImage?.toURL(),
+                            placeholder: Image(systemName: "person.fill"),
+                            contentMode: .fill
+                        )
                         VStack(alignment: .leading) {
-                            Text("مستخدم")
+                            Text(review.userName ?? "مستخدم")
                                 .bold()
-                            Text("UXUI Client")
+                            Text(review.userTitle ?? "")
                                 .font(.caption)
                                 .foregroundColor(.gray)
                         }
                         Spacer()
-                        Label("4.8", systemImage: "star.fill")
+                        Label(String(format: "%.1f", review.rating ?? 0.0), systemImage: "star.fill")
                             .font(.caption)
                             .foregroundColor(.orange)
                     }
-                    Text("هذا النص هو مثال لنص يمكن أن يستبدل في نفس المساحة. هذا النص يولد تلقائيًا من مولد النص العربي.")
+                    Text(review.text ?? "")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
@@ -299,4 +296,35 @@ struct FreelancerReviewsTab: View {
         }
         .padding(.horizontal)
     }
+}
+
+// Preview
+#Preview {
+    let mockFreelancer = Freelancer(
+        id: "1",
+        full_name: "أحمد العزايزة",
+        title: "مصمم UX/UI",
+        bio: "مصمم شغوف بخبرة أكثر من 6 سنوات في مجالات البرمجة والتصميم وخدمات البراندنج.",
+        image: "https://randomuser.me/api/portraits/men/32.jpg",
+        rating: 4.9,
+        completedProjects: 28,
+        completedServices: 17,
+        price: 250,
+        joinedAt: "2024-10-20T13:00:00Z",
+        portfolio: [
+            PortfolioItem(id: "1", title: "تطبيق عقارات ليبيا", description: "تطبيق متكامل لإدارة العقارات في ليبيا.", image: nil),
+            PortfolioItem(id: "2", title: "تصميم هوية مطعم", description: "هوية كاملة مع مواقع التواصل.", image: nil)
+        ],
+        services: [
+            Service(id: "1", title: "تصميم بوستات سوشيال", image: nil, price: 10, rating: 4.7),
+            Service(id: "2", title: "تصميم شعارات احترافية", image: nil, price: 15, rating: 4.8)
+        ],
+        reviews: [
+            Review(id: "1", userName: "محمد ياسين", userTitle: "عميل", userImage: nil, rating: 4.9, text: "خدمة ممتازة وسريعة. سعيد بالتعامل."),
+            Review(id: "2", userName: "سارة منصور", userTitle: "عميلة", userImage: nil, rating: 4.7, text: "مصمم محترف وتواصل جيد. أنصح به.")
+        ],
+        clientsCount: 120
+    )
+    FreelancerProfileView(freelancer: mockFreelancer)
+        .environmentObject(AppRouter())
 }

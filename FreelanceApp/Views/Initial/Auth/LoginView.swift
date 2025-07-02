@@ -54,11 +54,11 @@ struct LoginView: View {
                     VStack(spacing: 16) {
                         Button {
                             Messaging.messaging().token { token, error in
-                                if let error = error {
-                                    appRouter.toggleAppPopup(.alertError(LocalizedStringKey.error, error.localizedDescription))
-                                } else if let token = token {
-                                    register(fcmToken: token)
-                                }
+//                                if let error = error {
+//                                    appRouter.toggleAppPopup(.alertError(LocalizedStringKey.error, error.localizedDescription))
+//                                } else if let token = token {
+                                    register(fcmToken: "token")
+//                                }
                             }
                         } label: {
                             Text("ارسل رمز التحقق")
@@ -67,20 +67,10 @@ struct LoginView: View {
                         .disabled(viewModel.isLoading)
 
                         HStack {
-                            Button("سجل الآن") {
-                                loginType = .register
-                            }
-                            .font(.footnote)
-                            .foregroundColor(.gray)
-                            .padding(.horizontal)
-                            .padding(.vertical, 10)
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(10)
-
                             Spacer()
 
                             Button("ليس لديك حساب؟") {
-                                loginType = .register
+                                loginStatus = .register
                             }
                             .font(.footnote)
                             .foregroundColor(.gray)

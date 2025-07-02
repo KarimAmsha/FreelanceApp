@@ -40,5 +40,12 @@ extension Double {
         
         return (self / total) * 100.0
     }
+    
+    func formattedAsCurrency() -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "SAR"
+        return formatter.string(from: NSNumber(value: self)) ?? "$0"
+    }
 }
 

@@ -25,15 +25,20 @@ struct HomeView: View {
                     Text("المشاريع الفعالة")
                         .font(.system(size: 16, weight: .bold))
                     
+                    let user = UserSettings.shared.user
                     GeneralCardView(
-                        title: "تصميم بروشور شركة",
-                        rating: 4.8,
-                        reviewer: "محمد سعيد",
-                        completedProjects: 100,
-                        price: "$160",
-                        date: "٢٧ أكتوبر 2024",
-                        status: "قيد التنفيذ"
+                        title: "برمجة تطبيق",
+                        rating: user?.rate ?? 0,
+                        reviewer: user?.full_name ?? "بدون اسم",
+                        completedProjects: 0,//user?.projectsCount ?? 0,
+                        price: user?.wallet?.formattedAsCurrency() ?? "$0",
+                        date: user?.formattedDOB ?? "",
+                        status: user?.isVerify == true ? "موثّق" : "غير موثّق"
                     )
+                }
+                
+                if let sliders = viewModel.homeItems?.slider, !sliders.isEmpty {
+                    SliderView(items: sliders, currentIndex: $currentIndex)
                 }
 
                 if viewModel.isLoading {
@@ -43,31 +48,23 @@ struct HomeView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("البحث بالتخصص")
                                 .font(.system(size: 16, weight: .bold))
-                                .padding(.horizontal)
+                                .padding()
 
-                            if let categories = viewModel.homeItems?.category, categories.isEmpty {
-                                DefaultEmptyView(title: LocalizedStringKey.noDataFound)
-                            } else if let categories = viewModel.homeItems?.category {
+                            if let categories = viewModel.homeItems?.category, !categories.isEmpty {
                                 LazyVGrid(columns: Array(repeating: .init(.flexible(), spacing: 16), count: 2), spacing: 16) {
-                                    ForEach(sampleCategories) { category in
-                                        VStack {
-                                            Image(category.image)
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(height: 120)
-                                                .cornerRadius(10)
-                                            Text(category.title)
-                                                .font(.system(size: 14, weight: .semibold))
-                                            Text("+1500 فريلانسر")
-                                                .font(.system(size: 12))
-                                                .foregroundColor(.gray)
-                                        }
-                                        .onTapGesture {
-                                            appRouter.navigate(to: .freelancerList)
+                                    ForEach(categories) { category in
+                                        CategoryCardView(category: category) {
+                                            appRouter.navigate(to: .freelancerList(
+                                                categoryId: category.id,
+                                                categoryTitle: category.title,
+                                                freelancersCount: category.users ?? 0
+                                            ))
                                         }
                                     }
                                 }
                                 .padding(.horizontal)
+                            } else {
+                                DefaultEmptyView(title: LocalizedStringKey.noDataFound)
                             }
                         }
                     }
@@ -84,28 +81,33 @@ struct HomeView: View {
             ToolbarItem(placement: .navigationBarLeading) {
                 HStack {
                     AsyncImageView(
-                        width: 60,
-                        height: 60,
+                        width: 40,
+                        height: 40,
                         cornerRadius: 10,
                         imageURL: UserSettings.shared.user?.image?.toURL(),
                         placeholder: Image(systemName: "person.fill"),
                         contentMode: .fill
                     )
-                    
-                    
                     VStack(alignment: .leading) {
-                        Text("مرحباً أحمد! 👋")
+                        Text("مرحباً \(UserSettings.shared.user?.full_name ?? "")! 👋")
                             .customFont(weight: .bold, size: 20)
-                        Text("UXUI Designer")
+                        Text(UserSettings.shared.user?.work ?? "-")
                             .customFont(weight: .regular, size: 10)
                     }
                     .foregroundColor(Color.black222020())
                 }
             }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Image("ic_bell")
+                    .onTapGesture {
+                        appRouter.navigate(to: .notifications)
+                    }
+            }
         }
         .onAppear {
             getHome()
-            viewModel.fetchContactItems()
+//            viewModel.fetchContactItems()
             refreshFcmToken()
         }
     }
@@ -157,3 +159,95 @@ let sampleCategories: [Category2] = [
     .init(title: "المجال الطبي", image: "medical_image"),
     .init(title: "التدريس", image: "teaching_image")
 ]
+
+struct SliderView: View {
+    let items: [SliderItem]
+    @Binding var currentIndex: Int
+
+    var body: some View {
+        TabView(selection: $currentIndex) {
+            ForEach(items.indices, id: \.self) { i in
+                let slider = items[i]
+                ZStack(alignment: .bottomLeading) {
+                    AsyncImageView(
+                        width: UIScreen.main.bounds.width - 36,
+                        height: 180,
+                        cornerRadius: 18,
+                        imageURL: slider.image.toURL(),
+                        placeholder: Image(systemName: "photo"),
+                        contentMode: .fill
+                    )
+                    .clipped()
+                    
+                    LinearGradient(
+                        gradient: Gradient(colors: [.black.opacity(0.0), .black.opacity(0.45)]),
+                        startPoint: .top, endPoint: .bottom
+                    )
+                    .cornerRadius(18)
+                    .frame(height: 180)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(slider.title ?? "")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                        if let desc = slider.description, !desc.isEmpty {
+                            Text(desc)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white.opacity(0.93))
+                                .lineLimit(2)
+                        }
+                    }
+                    .padding(18)
+                }
+                .frame(width: UIScreen.main.bounds.width - 36, height: 180)
+                .background(Color.white)
+                .cornerRadius(18)
+                .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+                .padding(.vertical, 4)
+                .tag(i)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .always))
+        .frame(height: 190)
+        .padding(.horizontal, 18)
+    }
+}
+
+// مثال للاستخدام في الـ HomeView:
+struct SliderView_Previews: PreviewProvider {
+    static var previews: some View {
+        SliderView(
+            items: [
+                SliderItem(id: "1", image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb", title: "عنوان 1", description: "وصف سريع"),
+                SliderItem(id: "2", image: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308", title: "عنوان 2", description: "وصف ثاني")
+            ],
+            currentIndex: .constant(0)
+        )
+    }
+}
+
+// 1. تعريف فيو الكاتيجوري كارد
+struct CategoryCardView: View {
+    let category: CategoryItem
+    let onTap: () -> Void
+
+    var body: some View {
+        VStack {
+            AsyncImageView(
+                width: .infinity,
+                height: 120,
+                cornerRadius: 10,
+                imageURL: category.image?.toURL(),
+                placeholder: Image(systemName: "photo"),
+                contentMode: .fill
+            )
+            Text(category.title)
+                .font(.system(size: 14, weight: .semibold))
+            Text("+\(category.users ?? 0) فريلانسر")
+                .font(.system(size: 12))
+                .foregroundColor(.gray)
+        }
+        .onTapGesture { onTap() }
+    }
+}

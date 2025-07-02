@@ -263,6 +263,9 @@
 		52A9167E2E152DF7002C8668 /* PhoneChangeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A9167D2E152DF6002C8668 /* PhoneChangeView.swift */; };
 		52A916802E152E23002C8668 /* OTPVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A9167F2E152E22002C8668 /* OTPVerificationView.swift */; };
 		52A916822E152E71002C8668 /* PhoneEditAndVerifyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A916812E152E6F002C8668 /* PhoneEditAndVerifyViewModel.swift */; };
+		52A916842E156268002C8668 /* FilterParams.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A916832E156261002C8668 /* FilterParams.swift */; };
+		52A916862E156447002C8668 /* Freelancer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A916852E156446002C8668 /* Freelancer.swift */; };
+		52A916882E156499002C8668 /* FreelancerListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A916872E156490002C8668 /* FreelancerListViewModel.swift */; };
 		52AEC8D72DCBE61C00B4FC84 /* ServiceModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AEC8D62DCBE61A00B4FC84 /* ServiceModel.swift */; };
 		52AEC8D92DCBF23500B4FC84 /* .swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AEC8D82DCBF22900B4FC84 /* .swift */; };
 		52AEC8DD2DCBF26900B4FC84 /* DeliveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AEC8DC2DCBF26100B4FC84 /* DeliveryView.swift */; };
@@ -520,6 +523,9 @@
 		52A9167D2E152DF6002C8668 /* PhoneChangeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneChangeView.swift; sourceTree = "<group>"; };
 		52A9167F2E152E22002C8668 /* OTPVerificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTPVerificationView.swift; sourceTree = "<group>"; };
 		52A916812E152E6F002C8668 /* PhoneEditAndVerifyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneEditAndVerifyViewModel.swift; sourceTree = "<group>"; };
+		52A916832E156261002C8668 /* FilterParams.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterParams.swift; sourceTree = "<group>"; };
+		52A916852E156446002C8668 /* Freelancer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Freelancer.swift; sourceTree = "<group>"; };
+		52A916872E156490002C8668 /* FreelancerListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreelancerListViewModel.swift; sourceTree = "<group>"; };
 		52AEC8D62DCBE61A00B4FC84 /* ServiceModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceModel.swift; sourceTree = "<group>"; };
 		52AEC8D82DCBF22900B4FC84 /* .swift */ = {isa = PBXFileReference; lastKnownFileType = text; path = .swift; sourceTree = "<group>"; };
 		52AEC8DC2DCBF26100B4FC84 /* DeliveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryView.swift; sourceTree = "<group>"; };
@@ -702,6 +708,7 @@
 		1ECC944B2BDC56DE002BFE54 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				52A916872E156490002C8668 /* FreelancerListViewModel.swift */,
 				52A916812E152E6F002C8668 /* PhoneEditAndVerifyViewModel.swift */,
 				52A8C2F82E0A969800D0C59B /* RegistrationViewModel.swift */,
 				5267FAC82DCD42640063AF67 /* ChatListViewModel.swift */,
@@ -760,6 +767,8 @@
 		1ECC944D2BDC56EE002BFE54 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				52A916852E156446002C8668 /* Freelancer.swift */,
+				52A916832E156261002C8668 /* FilterParams.swift */,
 				5267FAB82DCD3D980063AF67 /* Chat */,
 				52AEC8D62DCBE61A00B4FC84 /* ServiceModel.swift */,
 				52D9E6CB2DCB92A800ED2874 /* MainTabItem.swift */,
@@ -1421,6 +1430,7 @@
 				1EA6D3272C1DB13A007E8AE0 /* WalletData.swift in Sources */,
 				52A916802E152E23002C8668 /* OTPVerificationView.swift in Sources */,
 				52C6AD582DCA3DF900D0A672 /* MessageAlertObserverView.swift in Sources */,
+				52A916882E156499002C8668 /* FreelancerListViewModel.swift in Sources */,
 				1EC27FF82C03ACAE0007279D /* OrderViewModel.swift in Sources */,
 				1ECC94DA2BDC6094002BFE54 /* SplashView.swift in Sources */,
 				1E6084B02BE042C6007D83B1 /* WishesView.swift in Sources */,
@@ -1548,6 +1558,7 @@
 				1E479B312C4D881B006130E1 /* WhatsApp.swift in Sources */,
 				1ECC95182BDD17FA002BFE54 /* FloatingPickerView.swift in Sources */,
 				5267FAC92DCD42650063AF67 /* ChatListViewModel.swift in Sources */,
+				52A916862E156447002C8668 /* Freelancer.swift in Sources */,
 				1ECC952D2BDD2C02002BFE54 /* MainView.swift in Sources */,
 				1ECC94792BDC5B8B002BFE54 /* Constants.swift in Sources */,
 				52C6AD722DCA515100D0A672 /* RegistrationIdentityView.swift in Sources */,
@@ -1581,6 +1592,7 @@
 				5235B1A52DCCE432009F75FA /* FreelancerProfileView.swift in Sources */,
 				1ECC94542BDC57D3002BFE54 /* APIEndpoint.swift in Sources */,
 				5235B1A32DCCE0D9009F75FA /* FreelancerListView.swift in Sources */,
+				52A916842E156268002C8668 /* FilterParams.swift in Sources */,
 				5235B1992DCC9A2E009F75FA /* DeliveryDetailsView.swift in Sources */,
 				1E5F318D2BE23E5100E5A914 /* FriendWishesDetailsView.swift in Sources */,
 				1E2804302C04D41A0021DFB0 /* NotificationsViewModel.swift in Sources */,

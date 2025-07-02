@@ -98,100 +98,9 @@ struct MainView: View {
             .toolbarBackground(Color.background(), for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
             .environmentObject(appRouter)
+            .environmentObject(appRouter)
             .navigationDestination(for: AppRouter.Destination.self) { destination in
-                switch destination {
-                case .profile:
-                    ProfileView()
-                case .editProfile:
-                    EditProfileView()
-                case .changePassword:
-                    EmptyView()
-//                    ChangePasswordView()
-                case .changePhoneNumber:
-                    PhoneChangeView()
-                        .environmentObject(appRouter)
-                case .contactUs:
-                    ContactUsView()
-                case .rewards:
-                    EmptyView()
-//                    RewardsView()
-                case .paymentSuccess:
-                    SuccessView()
-                case .constant(let item):
-                    ConstantView(item: .constant(item))
-                case .myOrders:
-                    MyOrdersView()
-                case .orderDetails(let orderID):
-                    OrderDetailsView(orderID: orderID)
-                case .upcomingReminders:
-                    UpcomingRemindersView()
-                case .productsListView(let specialCategory):
-                    ProductsListView(viewModel: viewModel, specialCategory: specialCategory)
-                case .productDetails(let id):
-                    ProductDetailsView(viewModel: viewModel, productId: id)
-                case .selectedGiftView:
-                    SelectedGiftView()
-                case .friendWishes(let user):
-                    FriendWishesView(user: user)
-                case .friendWishesListView:
-                    FriendWishesListView()
-                case .friendWishesDetailsView(let id):
-                    FriendWishesDetailsView(wishId: id, viewModel: viewModel)
-                case .retailFriendWishesView:
-                    RetailFriendWishesView()
-                case .retailPaymentView(let id):
-                    RetailPaymentView(wishId: id)
-                case .addressBook:
-                    AddressBookView()
-                case .addAddressBook:
-                    AddAddressView()
-                case .editAddressBook(let item):
-                    EditAddressView(addressItem: item)
-                case .addressBookDetails(let item):
-                    AddressDetailsView(addressItem: item)
-                case .notifications:
-                    NotificationsView()
-                case .checkoutView(let cartItems):
-                    CheckoutView(cartItems: cartItems)
-                case .productsSearchView:
-                    ProductsSearchView(viewModel: viewModel)
-                case .wishesView:
-                    WishesView()
-                case .userProducts(let id):
-                    UserProductsView(viewModel: viewModel, id: id)
-                case .addUserProduct:
-                    AddUserProductView(viewModel: viewModel)
-                case .VIPGiftView(let type):
-                    VIPGiftView(viewModel: viewModel, categoryType: type)
-                case .userWishes(let userId, let groupId):
-                    UserWishesView(userId: userId, group_id: groupId)
-                case .wishCheckOut(let id):
-                    WishCheckOutView(wishId: id)
-                case .walletView:
-                    WalletView()
-                case .explorWishView(let id):
-                    ExplorWishView(wishId: id, viewModel: viewModel)
-                case .myWishView(let id):
-                    MyWishView(wishId: id, viewModel: viewModel)
-                case .addReview(let id):
-                    AddReviewView(orderId: id)
-                case .deliveryDetails:
-                    DeliveryDetailsView()
-                case .earningsView:
-                    EarningsView()
-                case .notificationsSettings:
-                    NotificationsSettingsView()
-                case .accountSettings:
-                    AccountSettingsView()
-                case .freelancerList:
-                    FreelancerListView()
-                case .freelancerProfile:
-                    FreelancerProfileView()
-                case .serviceDetails:
-                    ServiceDetailsView()
-                case .chat(let chatId, let currentUserId):
-                    ChatDetailView(chatId: chatId, currentUserId: currentUserId)
-                }
+                destinationView(destination: destination)
             }
             .popup(isPresented: Binding<Bool>(
                 get: { appRouter.activePopup != nil },
@@ -255,3 +164,101 @@ struct MainView: View {
         .environmentObject(AppState())
 }
 
+
+extension MainView {
+    // استخدم ViewBuilder لتقسيم الحالات الكبيرة أو التي فيها باراميترز
+    @ViewBuilder
+    func destinationView(destination: AppRouter.Destination) -> some View {
+        switch destination {
+        case .profile:
+            ProfileView()
+        case .editProfile:
+            EditProfileView()
+        case .changePassword:
+            EmptyView()
+        case .changePhoneNumber:
+            PhoneChangeView().environmentObject(appRouter)
+        case .contactUs:
+            ContactUsView()
+        case .rewards:
+            EmptyView()
+        case .paymentSuccess:
+            SuccessView()
+        case .constant(let item):
+            ConstantView(item: .constant(item))
+        case .myOrders:
+            MyOrdersView()
+        case .orderDetails(let orderID):
+            OrderDetailsView(orderID: orderID)
+        case .upcomingReminders:
+            UpcomingRemindersView()
+        case .productsListView(let specialCategory):
+            ProductsListView(viewModel: viewModel, specialCategory: specialCategory)
+        case .productDetails(let id):
+            ProductDetailsView(viewModel: viewModel, productId: id)
+        case .selectedGiftView:
+            SelectedGiftView()
+        case .friendWishes(let user):
+            FriendWishesView(user: user)
+        case .friendWishesListView:
+            FriendWishesListView()
+        case .friendWishesDetailsView(let id):
+            FriendWishesDetailsView(wishId: id, viewModel: viewModel)
+        case .retailFriendWishesView:
+            RetailFriendWishesView()
+        case .retailPaymentView(let id):
+            RetailPaymentView(wishId: id)
+        case .addressBook:
+            AddressBookView()
+        case .addAddressBook:
+            AddAddressView()
+        case .editAddressBook(let item):
+            EditAddressView(addressItem: item)
+        case .addressBookDetails(let item):
+            AddressDetailsView(addressItem: item)
+        case .notifications:
+            NotificationsView()
+        case .checkoutView(let cartItems):
+            CheckoutView(cartItems: cartItems)
+        case .productsSearchView:
+            ProductsSearchView(viewModel: viewModel)
+        case .wishesView:
+            WishesView()
+        case .userProducts(let id):
+            UserProductsView(viewModel: viewModel, id: id)
+        case .addUserProduct:
+            AddUserProductView(viewModel: viewModel)
+        case .VIPGiftView(let type):
+            VIPGiftView(viewModel: viewModel, categoryType: type)
+        case .userWishes(let userId, let groupId):
+            UserWishesView(userId: userId, group_id: groupId)
+        case .wishCheckOut(let id):
+            WishCheckOutView(wishId: id)
+        case .walletView:
+            WalletView()
+        case .explorWishView(let id):
+            ExplorWishView(wishId: id, viewModel: viewModel)
+        case .myWishView(let id):
+            MyWishView(wishId: id, viewModel: viewModel)
+        case .addReview(let id):
+            AddReviewView(orderId: id)
+        case .deliveryDetails:
+            DeliveryDetailsView()
+        case .earningsView:
+            EarningsView()
+        case .notificationsSettings:
+            NotificationsSettingsView()
+        case .accountSettings:
+            AccountSettingsView()
+        // --- هنا المهم! ---
+        case .freelancerList(let categoryId, let categoryTitle, let freelancersCount):
+            FreelancerListView(categoryId: categoryId, categoryTitle: categoryTitle, freelancersCount: freelancersCount)
+        case .freelancerProfile(let freelancer):
+            FreelancerProfileView(freelancer: freelancer)
+        case .serviceDetails:
+            ServiceDetailsView()
+        case .chat(let chatId, let currentUserId):
+            ChatDetailView(chatId: chatId, currentUserId: currentUserId)
+        }
+    }
+}

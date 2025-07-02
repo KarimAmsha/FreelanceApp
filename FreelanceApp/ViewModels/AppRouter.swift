@@ -50,8 +50,8 @@ final class AppRouter: ObservableObject {
         case earningsView
         case notificationsSettings
         case accountSettings
-        case freelancerList
-        case freelancerProfile
+        case freelancerList(categoryId: String, categoryTitle: String, freelancersCount: Int)
+        case freelancerProfile(freelancer: Freelancer)
         case serviceDetails
         case chat(chatId: String, currentUserId: String)
     }
