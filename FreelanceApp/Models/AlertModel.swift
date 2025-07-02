@@ -10,6 +10,7 @@ import Foundation
 struct AlertModel: Hashable, Equatable {
     let id = UUID()
     let icon: String
+    var isSystemImage: Bool = false // <<-- جديد
     let title: String
     let message: String
     let hasItem: Bool

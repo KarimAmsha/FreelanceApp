@@ -108,8 +108,8 @@ struct MainView: View {
                     EmptyView()
 //                    ChangePasswordView()
                 case .changePhoneNumber:
-                    EmptyView()
-//                    ChangePhoneNumberView()
+                    PhoneChangeView()
+                        .environmentObject(appRouter)
                 case .contactUs:
                     ContactUsView()
                 case .rewards:

@@ -14,12 +14,21 @@ struct AlertView: View {
         VStack(alignment: .center, spacing: 24) {
             VStack {
                 if !alertModel.hidesIcon {
-                    Image(alertModel.icon)
-                        .resizable()
-                        .frame(width: 80, height: 80)
-                        .padding(16)
+                    if alertModel.isSystemImage {
+                        Image(systemName: alertModel.icon)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 64, height: 64)
+                            .foregroundColor(.dangerNormal())
+                            .padding(16)
+                    } else {
+                        Image(alertModel.icon)
+                            .resizable()
+                            .frame(width: 80, height: 80)
+                            .padding(16)
+                    }
                 }
-                
+
                 VStack(alignment: .center, spacing: 8) {
                     Text(alertModel.title)
                         .customFont(weight: .semiBold, size: 16)

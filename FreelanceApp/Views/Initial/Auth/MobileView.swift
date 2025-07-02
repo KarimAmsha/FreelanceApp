@@ -15,7 +15,7 @@ struct MobileView: View {
     @State var countryCode : String = "+966"
     @State var countryFlag : String = "🇸🇦"
     @State var countryPattern : String = "## ### ####"
-    @State var countryPatternPalceholder : String = "5# ### ####"
+    var countryPatternPalceholder: String = "5# ### ####"
     @State var strokeColor = Color.primaryGreen()
 
     var body: some View {

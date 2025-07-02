@@ -260,6 +260,9 @@
 		52A8C2F92E0A969900D0C59B /* RegistrationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A8C2F82E0A969800D0C59B /* RegistrationViewModel.swift */; };
 		52A8C2FB2E0AA5D900D0C59B /* ImageVideoPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A8C2FA2E0AA5D800D0C59B /* ImageVideoPicker.swift */; };
 		52A8C2FD2E0AA5F100D0C59B /* FileDocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A8C2FC2E0AA5F000D0C59B /* FileDocumentPicker.swift */; };
+		52A9167E2E152DF7002C8668 /* PhoneChangeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A9167D2E152DF6002C8668 /* PhoneChangeView.swift */; };
+		52A916802E152E23002C8668 /* OTPVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A9167F2E152E22002C8668 /* OTPVerificationView.swift */; };
+		52A916822E152E71002C8668 /* PhoneEditAndVerifyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A916812E152E6F002C8668 /* PhoneEditAndVerifyViewModel.swift */; };
 		52AEC8D72DCBE61C00B4FC84 /* ServiceModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AEC8D62DCBE61A00B4FC84 /* ServiceModel.swift */; };
 		52AEC8D92DCBF23500B4FC84 /* .swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AEC8D82DCBF22900B4FC84 /* .swift */; };
 		52AEC8DD2DCBF26900B4FC84 /* DeliveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52AEC8DC2DCBF26100B4FC84 /* DeliveryView.swift */; };
@@ -514,6 +517,9 @@
 		52A8C2F82E0A969800D0C59B /* RegistrationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationViewModel.swift; sourceTree = "<group>"; };
 		52A8C2FA2E0AA5D800D0C59B /* ImageVideoPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageVideoPicker.swift; sourceTree = "<group>"; };
 		52A8C2FC2E0AA5F000D0C59B /* FileDocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDocumentPicker.swift; sourceTree = "<group>"; };
+		52A9167D2E152DF6002C8668 /* PhoneChangeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneChangeView.swift; sourceTree = "<group>"; };
+		52A9167F2E152E22002C8668 /* OTPVerificationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTPVerificationView.swift; sourceTree = "<group>"; };
+		52A916812E152E6F002C8668 /* PhoneEditAndVerifyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneEditAndVerifyViewModel.swift; sourceTree = "<group>"; };
 		52AEC8D62DCBE61A00B4FC84 /* ServiceModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceModel.swift; sourceTree = "<group>"; };
 		52AEC8D82DCBF22900B4FC84 /* .swift */ = {isa = PBXFileReference; lastKnownFileType = text; path = .swift; sourceTree = "<group>"; };
 		52AEC8DC2DCBF26100B4FC84 /* DeliveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryView.swift; sourceTree = "<group>"; };
@@ -696,6 +702,7 @@
 		1ECC944B2BDC56DE002BFE54 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				52A916812E152E6F002C8668 /* PhoneEditAndVerifyViewModel.swift */,
 				52A8C2F82E0A969800D0C59B /* RegistrationViewModel.swift */,
 				5267FAC82DCD42640063AF67 /* ChatListViewModel.swift */,
 				5267FAC62DCD413B0063AF67 /* ChatViewModel.swift */,
@@ -989,6 +996,8 @@
 		1EDEF6692BE167E400863C10 /* Profile */ = {
 			isa = PBXGroup;
 			children = (
+				52A9167F2E152E22002C8668 /* OTPVerificationView.swift */,
+				52A9167D2E152DF6002C8668 /* PhoneChangeView.swift */,
 				5235B1A02DCCD761009F75FA /* AccountSettingsView.swift */,
 				5235B19E2DCCD5E8009F75FA /* NotificationsSettingsView.swift */,
 				5235B19C2DCCD40E009F75FA /* EarningsView.swift */,
@@ -1365,6 +1374,7 @@
 				1E0053412C1F2D8900C75E42 /* ShowOrderOnMapView.swift in Sources */,
 				1EFB9B232C1B829C00C15CE4 /* ExplorView.swift in Sources */,
 				1EEC2BD22BD83E6000975953 /* ContentView.swift in Sources */,
+				52A9167E2E152DF7002C8668 /* PhoneChangeView.swift in Sources */,
 				1EA7404C2BFB8E970028AAD0 /* Category.swift in Sources */,
 				1ECC94D82BDC5FF7002BFE54 /* CustomModel.swift in Sources */,
 				1ECC95142BDD17D1002BFE54 /* AlertView.swift in Sources */,
@@ -1409,6 +1419,7 @@
 				1ECC946D2BDC5B68002BFE54 /* String+Extensions.swift in Sources */,
 				1ECC94EE2BDC6E84002BFE54 /* WelcomeView.swift in Sources */,
 				1EA6D3272C1DB13A007E8AE0 /* WalletData.swift in Sources */,
+				52A916802E152E23002C8668 /* OTPVerificationView.swift in Sources */,
 				52C6AD582DCA3DF900D0A672 /* MessageAlertObserverView.swift in Sources */,
 				1EC27FF82C03ACAE0007279D /* OrderViewModel.swift in Sources */,
 				1ECC94DA2BDC6094002BFE54 /* SplashView.swift in Sources */,
@@ -1428,6 +1439,7 @@
 				1EDEF6812BE19DA000863C10 /* ProductDetailsView.swift in Sources */,
 				1EC27FFA2C03AF740007279D /* OrderModel.swift in Sources */,
 				1ECC946A2BDC5B68002BFE54 /* Int64+Extensions.swift in Sources */,
+				52A916822E152E71002C8668 /* PhoneEditAndVerifyViewModel.swift in Sources */,
 				1ECC95312BDD77B5002BFE54 /* SMSVerificationView.swift in Sources */,
 				1ECC94C82BDC5E49002BFE54 /* RoundedCorner.swift in Sources */,
 				5267FAC12DCD40D10063AF67 /* ChatDetailView.swift in Sources */,

@@ -12,43 +12,18 @@ struct ProfileView: View {
     @StateObject private var initialViewModel = InitialViewModel(errorHandling: ErrorHandling())
     @StateObject private var authViewModel = AuthViewModel(errorHandling: ErrorHandling())
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var userSettings: UserSettings
 
     var body: some View {
         GeometryReader { geometry in
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 20) {
                     // Profile Card
-                    ZStack(alignment: .topLeading) {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.primary())
-                            .frame(height: 80)
-                        HStack {
-                            VStack(alignment: .trailing, spacing: 4) {
-                                Text("قد سعيد")
-                                    .foregroundColor(.white)
-                                    .bold()
-                                Text("100 مشروع مكتمل")
-                                    .foregroundColor(.white)
-                                    .font(.caption)
-                            }
-                            Spacer()
-                            Image("profile")
-                                .resizable()
-                                .frame(width: 48, height: 48)
-                                .clipShape(Circle())
-                        }
-                        .padding(.horizontal)
-
-                        Button(action: {}) {
-                            Image(systemName: "pencil")
-                                .padding(8)
-                                .background(Color.white.opacity(0.2))
-                                .clipShape(Circle())
-                                .foregroundColor(.white)
-                        }
-                        .padding(8)
-                    }
-                    .padding(.horizontal)
+                    ProfileCardView(
+                        name: userSettings.user?.full_name ?? "اسم المستخدم",
+                        phone: userSettings.user?.phone_number ?? "55 ### ####",
+                        imageUrl: userSettings.user?.image
+                    )
 
                     // Settings List
                     VStack(spacing: 0) {
@@ -68,7 +43,10 @@ struct ProfileView: View {
                             appRouter.navigate(to: .editProfile)
                         }
                         settingsRow(title: "تسجيل الخروج", icon: "rectangle.portrait.and.arrow.right") {
-                            appRouter.navigate(to: .editProfile)
+                            logout()
+                        }
+                        settingsRow(title: "حذف الحساب", icon: "trash") {
+                            deleteAccount()
                         }
                     }
                     .background(Color.white)
@@ -87,7 +65,7 @@ struct ProfileView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 VStack(alignment: .leading) {
-                    Text("الزيد 🚗")
+                    Text("المزيد 🚗")
                         .customFont(weight: .bold, size: 20)
                     Text("الإعدادات والتحكم بتفاصيل الحساب!")
                         .customFont(weight: .regular, size: 10)
@@ -116,47 +94,20 @@ struct ProfileView: View {
                 Spacer()
                 Image(systemName: "chevron.left")
             }
-            .foregroundColor(.black)
+            .foregroundColor(title == "حذف الحساب" ? .red : .black)
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.white)
             .contentShape(Rectangle())
         }
-        .buttonStyle(PlainButtonStyle()) // لإزالة تأثير الزر الأزرق
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
-//// Dummy tab bar extension
-//extension View {
-//    func tabBar() -> some View {
-//        VStack(spacing: 0) {
-//            self
-//            Divider()
-//            HStack {
-//                tabItem(title: "الرئيسية", systemImage: "house")
-//                tabItem(title: "الرسائل", systemImage: "bubble.left")
-//                tabItem(title: "إضافة خدمة", systemImage: "plus")
-//                tabItem(title: "المشاريع", systemImage: "briefcase")
-//                tabItem(title: "الزيد", systemImage: "ellipsis")
-//            }
-//            .padding(.vertical, 8)
-//            .background(Color.white)
-//        }
-//    }
-//
-//    func tabItem(title: String, systemImage: String) -> some View {
-//        VStack(spacing: 4) {
-//            Image(systemName: systemImage)
-//            Text(title).font(.caption2)
-//        }
-//        .frame(maxWidth: .infinity)
-//        .foregroundColor(.black)
-//    }
-//}
-//
 #Preview {
     ProfileView()
         .environmentObject(AppRouter())
+        .environmentObject(UserSettings())
 }
 
 extension ProfileView {
@@ -186,15 +137,18 @@ extension ProfileView {
     }
     
     private func deleteAccount() {
-        let alertModel = AlertModel(icon: "",
-                                    title: LocalizedStringKey.deleteAccount,
-                                    message: LocalizedStringKey.deleteAccountMessage,
-                                    hasItem: false,
-                                    item: nil,
-                                    okTitle: LocalizedStringKey.deleteAccount,
-                                    cancelTitle: LocalizedStringKey.back,
-                                    hidesIcon: true,
-                                    hidesCancel: true) {
+        let alertModel = AlertModel(
+            icon: "trash",
+            isSystemImage: true,
+            title: "حذف الحساب نهائيًا",
+            message: "هل أنت متأكد أنك تريد حذف حسابك؟ سيتم فقد جميع بياناتك ولن تستطيع استرجاعها!",
+            hasItem: false,
+            item: nil,
+            okTitle: "نعم، احذف الحساب",
+            cancelTitle: "تراجع",
+            hidesIcon: false,
+            hidesCancel: false
+        ) {
             authViewModel.deleteAccount {
                 appState.currentPage = .home
             }
@@ -202,8 +156,86 @@ extension ProfileView {
         } onCancelAction: {
             appRouter.dismissPopup()
         }
-        
+
         appRouter.togglePopup(.alert(alertModel))
     }
 }
 
+struct ProfileCardView: View {
+    let name: String
+    let phone: String
+    let imageUrl: String?
+    @EnvironmentObject var appRouter: AppRouter
+
+    var body: some View {
+        ZStack {
+            Color.primary()
+                .cornerRadius(16)
+                .frame(height: 100)
+                .shadow(color: Color.black.opacity(0.07), radius: 8, x: 0, y: 4)
+
+            HStack {
+                // البيانات على اليمين
+                HStack(spacing: 10) {
+                    if let urlStr = imageUrl, let url = URL(string: urlStr) {
+                        AsyncImage(url: url) { image in
+                            image.resizable()
+                        } placeholder: {
+                            Image("profile")
+                                .resizable()
+                        }
+                        .frame(width: 48, height: 48)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                    } else {
+                        Image("profile")
+                            .resizable()
+                            .frame(width: 48, height: 48)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(name)
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                        Text(phone)
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundColor(.white)
+                    }
+                    
+                }
+                .padding(.leading, 16)
+
+                Spacer()
+                
+                // زر القلم أوتلاين على اليسار
+                Button(action: {
+                    appRouter.navigate(to: .editProfile)
+                }) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundColor(.white)
+                        .padding(10)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
+                }
+                .padding(.trailing, 16)
+            }
+        }
+        .frame(height: 100)
+        .padding(.horizontal, 8)
+    }
+}
+
+// معاينة:
+struct ProfileCardView_Previews: PreviewProvider {
+    static var previews: some View {
+        ProfileCardView(
+            name: "جاد سعيد",
+            phone: "100 مشروع مكتمل",
+            imageUrl: "https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg"
+        )
+        .background(Color(.systemBackground))
+        .previewLayout(.sizeThatFits)
+    }
+}
