@@ -1,122 +1,145 @@
-//
-//  LocationManager.swift
-//  Wishy
-//
-//  Created by Karim Amsha on 27.04.2024.
-//
-
-import Foundation
-import CoreLocation
-
-class LocationManager: NSObject, CLLocationManagerDelegate {
-    static let shared = LocationManager()
-
-    private var locationManager = CLLocationManager()
-    private var locationCompletion: ((CLLocationCoordinate2D?) -> Void)?
-    @Published var userLocation: CLLocationCoordinate2D?
-
-    override private init() {
-        super.init()
-        setupLocationManager()
-    }
-
-    private func setupLocationManager() {
-        locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.requestWhenInUseAuthorization()
-        locationManager.startUpdatingLocation()
-    }
-
-    func getCurrentLocation(completion: @escaping (CLLocationCoordinate2D?) -> Void) {
-        locationCompletion = completion
-        locationManager.requestLocation()
-    }
-
-    func startUpdatingLocation() {
-        locationManager.startUpdatingLocation()
-    }
-
-    func stopUpdatingLocation() {
-        locationManager.stopUpdatingLocation()
-    }
-
-    // MARK: - CLLocationManagerDelegate
-
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last?.coordinate else {
-            locationCompletion?(nil)
-            return
-        }
-        userLocation = location
-        locationCompletion?(location)
-        
-        // Stop updating location after receiving the first location
-        stopUpdatingLocation()
-    }
-
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Location update failed with error: \(error.localizedDescription)")
-        locationCompletion?(nil)
-    }
-}
-
 import Foundation
 import CoreLocation
 import Combine
 
-class LocationManager2: NSObject, ObservableObject, CLLocationManagerDelegate {
-    private var locationManager = CLLocationManager()
-    @Published var location: CLLocation? {
-        didSet {
-            fetchAddress(from: location)
-        }
-    }
-    @Published var address: String = ""
+final class LocationManager: NSObject, ObservableObject {
+    // Singleton (استخدمها إذا بدك مدير موحد لكل التطبيق)
+    static let shared = LocationManager()
     
-    override init() {
+    // MARK: - Core Location
+    private let locationManager = CLLocationManager()
+    private let geocoder = CLGeocoder()
+    
+    // MARK: - Published Vars (تراقبها SwiftUI)
+    @Published var location: CLLocation?
+    @Published var latitude: Double = 0
+    @Published var longitude: Double = 0
+    @Published var userCoordinate: CLLocationCoordinate2D?
+    @Published var address: String = ""
+    @Published var isLoading: Bool = false
+    @Published var permissionDenied: Bool = false
+    @Published var locationServicesDisabled: Bool = false
+    @Published var errorMessage: String? = nil
+    @Published var updatingContinuously: Bool = false   // 🔥 هل أنت بوضع "تتبع مستمر" أم لا؟
+    
+    override private init() {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.requestWhenInUseAuthorization()
-        locationManager.startUpdatingLocation()
     }
     
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        if let location = locations.first {
-            self.location = location
+    // MARK: - طلب الموقع مرة واحدة فقط (الأكثر شيوعاً)
+    func requestLocationOnce() {
+        isLoading = true
+        updatingContinuously = false
+        errorMessage = nil
+        if !CLLocationManager.locationServicesEnabled() {
+            self.locationServicesDisabled = true
+            self.isLoading = false
+            self.errorMessage = "خدمات الموقع غير مفعلة."
+            return
+        }
+        switch locationManager.authorizationStatus {
+        case .notDetermined:
+            locationManager.requestWhenInUseAuthorization()
+        case .restricted, .denied:
+            self.permissionDenied = true
+            self.isLoading = false
+            self.errorMessage = "لم يتم السماح بالوصول للموقع. فعّل الصلاحيات من الإعدادات."
+        case .authorizedWhenInUse, .authorizedAlways:
+            permissionDenied = false
+            locationServicesDisabled = false
+            locationManager.requestLocation()
+        @unknown default:
+            self.errorMessage = "حالة صلاحية الموقع غير معروفة!"
+            self.isLoading = false
         }
     }
     
-    func fetchAddress(from location: CLLocation?) {
-        guard let location = location else { return }
-        
-        let geocoder = CLGeocoder()
-        geocoder.reverseGeocodeLocation(location) { (placemarks, error) in
-            if let error = error {
-                print("Failed to get address: \(error.localizedDescription)")
-                self.address = "Address not found"
-                return
-            }
-            
-            if let placemark = placemarks?.first {
-                let addressString = [
-                    placemark.name,
-                    placemark.locality,
-                    placemark.administrativeArea,
-                    placemark.postalCode,
-                    placemark.country
-                ].compactMap { $0 }.joined(separator: ", ")
-                
-                DispatchQueue.main.async {
-                    self.address = addressString
+    // MARK: - تتبع الموقع بشكل مستمر (مثلاً إذا بدك ملاحة أو متابعة live)
+    func startContinuousUpdates() {
+        isLoading = true
+        updatingContinuously = true
+        errorMessage = nil
+        if !CLLocationManager.locationServicesEnabled() {
+            self.locationServicesDisabled = true
+            self.isLoading = false
+            self.errorMessage = "خدمات الموقع غير مفعلة."
+            return
+        }
+        switch locationManager.authorizationStatus {
+        case .notDetermined:
+            locationManager.requestWhenInUseAuthorization()
+        case .restricted, .denied:
+            self.permissionDenied = true
+            self.isLoading = false
+            self.errorMessage = "لم يتم السماح بالوصول للموقع. فعّل الصلاحيات من الإعدادات."
+        case .authorizedWhenInUse, .authorizedAlways:
+            permissionDenied = false
+            locationServicesDisabled = false
+            locationManager.startUpdatingLocation()
+        @unknown default:
+            self.errorMessage = "حالة صلاحية الموقع غير معروفة!"
+            self.isLoading = false
+        }
+    }
+    
+    func stopContinuousUpdates() {
+        updatingContinuously = false
+        locationManager.stopUpdatingLocation()
+        isLoading = false
+    }
+    
+    // MARK: - جلب العنوان من اللوكيشن
+    private func fetchAddress(for location: CLLocation) {
+        geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    self?.address = ""
+                    self?.errorMessage = "فشل جلب العنوان: \(error.localizedDescription)"
+                    return
+                }
+                if let placemark = placemarks?.first {
+                    let addressString = [
+                        placemark.name,
+                        placemark.locality,
+                        placemark.administrativeArea,
+                        placemark.country
+                    ].compactMap { $0 }.joined(separator: ", ")
+                    self?.address = addressString
+                } else {
+                    self?.address = ""
                 }
             }
         }
     }
 }
 
-extension LocationManager2 {
-    func startUpdatingLocation() {
-        locationManager.startUpdatingLocation()
+// MARK: - CLLocationManagerDelegate
+extension LocationManager: CLLocationManagerDelegate {
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        // التعامل مع الصلاحيات الجديدة
+        if updatingContinuously {
+            startContinuousUpdates()
+        } else {
+            requestLocationOnce()
+        }
+    }
+    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+        locationManagerDidChangeAuthorization(manager)
+    }
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        isLoading = false
+        guard let loc = locations.last else { return }
+        self.location = loc
+        self.latitude = loc.coordinate.latitude
+        self.longitude = loc.coordinate.longitude
+        self.userCoordinate = loc.coordinate
+        self.fetchAddress(for: loc)
+        // إذا بوضع "مرة واحدة"، لا داعي لأي شيء إضافي، وإذا بوضع تتبع، سيستمر بالتحديث.
+    }
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        errorMessage = "فشل تحديث الموقع: \(error.localizedDescription)"
+        isLoading = false
     }
 }

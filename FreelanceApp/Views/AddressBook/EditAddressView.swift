@@ -206,10 +206,8 @@ struct EditAddressView: View {
             }
         }
         .onAppear {
-            LocationManager.shared.getCurrentLocation { location in
-                if let location = location {
-                    self.userLocation = userLocation
-                }
+            if let location = LocationManager.shared.userCoordinate {
+                userLocation = location
             }
         }
         .overlay(

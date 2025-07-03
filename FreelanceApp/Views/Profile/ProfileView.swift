@@ -27,25 +27,38 @@ struct ProfileView: View {
 
                     // Settings List
                     VStack(spacing: 0) {
-                        settingsRow(title: "أرباحي", icon: "bag") {
+                        settingsRow(title: "أرباحي", icon: .system(name: "bag")) {
                             appRouter.navigate(to: .earningsView)
                         }
-
-                        settingsRow(title: "الإشعارات", icon: "bell") {
-                            appRouter.navigate(to: .notificationsSettings)
+                        settingsRow(title: "الإشعارات", icon: .system(name: "bell")) {
+                            appRouter.navigate(to: .notifications)
                         }
-
-                        settingsRow(title: "إعدادات الحساب", icon: "gearshape") {
+                        settingsRow(title: "إعدادات الحساب", icon: .system(name: "gearshape")) {
                             appRouter.navigate(to: .accountSettings)
                         }
-
-                        settingsRow(title: "المساعدة", icon: "questionmark.bubble") {
-                            appRouter.navigate(to: .editProfile)
+                        settingsRow(title: LocalizedStringKey.contactUs, icon: .asset(name: "ic_support")) {
+                            appRouter.navigate(to: .contactUs)
                         }
-                        settingsRow(title: "تسجيل الخروج", icon: "rectangle.portrait.and.arrow.right") {
+                        settingsRow(title: LocalizedStringKey.aboutApp, icon: .asset(name: "ic_mobile")) {
+                            if let item = initialViewModel.constantsItems?.first(where: { $0.constantType == .about }) {
+                                appRouter.navigate(to: .constant(item))
+                            }
+                        }
+                        settingsRow(title: LocalizedStringKey.termsConditions, icon: .asset(name: "ic_lock")) {
+                            if let item = initialViewModel.constantsItems?.first(where: { $0.constantType == .terms }) {
+                                appRouter.navigate(to: .constant(item))
+                            }
+                        }
+                        settingsRow(title: LocalizedStringKey.privacyPolicy, icon: .asset(name: "ic_lock")) {
+                            if let item = initialViewModel.constantsItems?.first(where: { $0.constantType == .privacy }) {
+                                appRouter.navigate(to: .constant(item))
+                            }
+                        }
+                        Divider()
+                        settingsRow(title: "تسجيل الخروج", icon: .system(name: "rectangle.portrait.and.arrow.right")) {
                             logout()
                         }
-                        settingsRow(title: "حذف الحساب", icon: "trash") {
+                        settingsRow(title: "حذف الحساب", icon: .system(name: "trash")) {
                             deleteAccount()
                         }
                     }
@@ -56,12 +69,11 @@ struct ProfileView: View {
 
                     Spacer()
                 }
-                .padding()
+                .padding(.top)
             }
         }
         .navigationBarBackButtonHidden()
         .background(Color.background())
-//        .tabBar()
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 VStack(alignment: .leading) {
@@ -72,7 +84,6 @@ struct ProfileView: View {
                 }
                 .foregroundColor(Color.black222020())
             }
-            
             ToolbarItem(placement: .navigationBarTrailing) {
                 Image("ic_bell")
                     .onTapGesture {
@@ -84,24 +95,48 @@ struct ProfileView: View {
             getConstants()
         }
     }
-    
+
+    // MARK: - Unified settingsRow for all
     @ViewBuilder
-    func settingsRow(title: String, icon: String, action: @escaping () -> Void) -> some View {
+    func settingsRow(title: String, icon: RowIcon, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack {
-                Image(systemName: icon)
+            HStack(spacing: 14) {
+                iconView(icon)
+                    .frame(width: 22, height: 22)
                 Text(title)
                 Spacer()
                 Image(systemName: "chevron.left")
+                    .foregroundColor(.gray)
             }
+            .customFont(weight: .medium, size: 16)
             .foregroundColor(title == "حذف الحساب" ? .red : .black)
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.white)
             .contentShape(Rectangle())
         }
-        .buttonStyle(PlainButtonStyle())
+//        .buttonStyle(PlainButtonStyle())
     }
+
+    @ViewBuilder
+    func iconView(_ icon: RowIcon) -> some View {
+        switch icon {
+        case .system(let name):
+            Image(systemName: name)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+        case .asset(let name):
+            Image(name)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+        }
+    }
+}
+
+// MARK: - RowIcon Helper
+enum RowIcon {
+    case system(name: String)
+    case asset(name: String)
 }
 
 #Preview {
@@ -110,6 +145,7 @@ struct ProfileView: View {
         .environmentObject(UserSettings())
 }
 
+// MARK: - Logic Functions
 extension ProfileView {
     private func getConstants() {
         initialViewModel.fetchConstantsItems()
@@ -132,10 +168,9 @@ extension ProfileView {
         } onCancelAction: {
             appRouter.dismissPopup()
         }
-        
         appRouter.togglePopup(.alert(alertModel))
     }
-    
+
     private func deleteAccount() {
         let alertModel = AlertModel(
             icon: "trash",
@@ -156,11 +191,11 @@ extension ProfileView {
         } onCancelAction: {
             appRouter.dismissPopup()
         }
-
         appRouter.togglePopup(.alert(alertModel))
     }
 }
 
+// MARK: - ProfileCardView
 struct ProfileCardView: View {
     let name: String
     let phone: String
@@ -175,7 +210,6 @@ struct ProfileCardView: View {
                 .shadow(color: Color.black.opacity(0.07), radius: 8, x: 0, y: 4)
 
             HStack {
-                // البيانات على اليمين
                 HStack(spacing: 10) {
                     if let urlStr = imageUrl, let url = URL(string: urlStr) {
                         AsyncImage(url: url) { image in
@@ -196,24 +230,20 @@ struct ProfileCardView: View {
                     }
                     VStack(alignment: .leading, spacing: 4) {
                         Text(name)
-                            .font(.system(size: 20, weight: .bold))
+                            .customFont(weight: .bold, size: 20)
                             .foregroundColor(.white)
                         Text(phone)
-                            .font(.system(size: 14, weight: .regular))
+                            .customFont(weight: .regular, size: 14)
                             .foregroundColor(.white)
                     }
-                    
                 }
                 .padding(.leading, 16)
-
                 Spacer()
-                
-                // زر القلم أوتلاين على اليسار
                 Button(action: {
                     appRouter.navigate(to: .editProfile)
                 }) {
                     Image(systemName: "pencil")
-                        .font(.system(size: 22, weight: .medium))
+                        .customFont(weight: .medium, size: 22)
                         .foregroundColor(.white)
                         .padding(10)
                         .background(Color.white.opacity(0.12))
@@ -224,18 +254,5 @@ struct ProfileCardView: View {
         }
         .frame(height: 100)
         .padding(.horizontal, 8)
-    }
-}
-
-// معاينة:
-struct ProfileCardView_Previews: PreviewProvider {
-    static var previews: some View {
-        ProfileCardView(
-            name: "جاد سعيد",
-            phone: "100 مشروع مكتمل",
-            imageUrl: "https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg"
-        )
-        .background(Color(.systemBackground))
-        .previewLayout(.sizeThatFits)
     }
 }

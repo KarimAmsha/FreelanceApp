@@ -72,7 +72,7 @@ struct EditProfileView: View {
         .onAppear {
             if name.isEmpty || email.isEmpty {
                 getUserData()
-                if let location = LocationManager.shared.userLocation {
+                if let location = LocationManager.shared.userCoordinate {
                     userLocation = location
                 }
             }

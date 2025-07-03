@@ -61,22 +61,13 @@ struct FullMapView: View {
             })
             .foregroundColor(.black)
             .onAppear {
-                moveToUserLocation()
+                Utilities.moveToUserLocation(region: $region)
             }
             .onChange(of: region, perform: { newRegion in
                 Utilities.getAddress(for: newRegion.center) { address in
                     self.address = address
                 }
             })
-        }
-    }
-    
-    func moveToUserLocation() {
-        withAnimation(.easeInOut(duration: 2.0)) {
-            if let userLocation = LocationManager.shared.userLocation {
-                region.center = userLocation
-                region.span = MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-            }
         }
     }
 }

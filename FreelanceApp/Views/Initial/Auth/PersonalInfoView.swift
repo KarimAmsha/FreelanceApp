@@ -153,7 +153,7 @@ struct PersonalInfoView: View {
         }
         .onAppear {
             getUserData()
-            if let userLocation = LocationManager.shared.userLocation {
+            if let userLocation = LocationManager.shared.userCoordinate {
                 self.userLocation = userLocation
             }
         }

@@ -43,7 +43,6 @@ struct CheckoutView: View {
     let cartItems: CartItems?
     @StateObject var orderViewModel = OrderViewModel(errorHandling: ErrorHandling())
     @State var currentUserLocation: AddressItem?
-    @StateObject private var locationManager2 = LocationManager2()
     @State private var selectedPurchaseType: PurchaseType = .myself
     @State private var isAddressBook = false
     @State private var coupon: String = ""
@@ -188,8 +187,8 @@ struct CheckoutView: View {
                 alertType: .constant(.error)
             )
         )
-        .onChange(of: locationManager2.location) { value in
-            if let location = locationManager2.location {
+        .onChange(of: LocationManager.shared.location) { newLocation in
+            if let location = newLocation {
                 print("New Location: \(location)")
                 currentUserLocation = AddressItem(
                     streetName: "",
@@ -202,7 +201,7 @@ struct CheckoutView: View {
                     title: "موقعي الحالي",
                     lat: location.coordinate.latitude,
                     lng: location.coordinate.longitude,
-                    address: locationManager2.address,
+                    address: LocationManager.shared.address, // العنوان من LocationManager
                     userId: "",
                     discount: 0
                 )
@@ -330,8 +329,6 @@ struct CheckoutView: View {
                 //
             }
             cartViewModel.getCartItems()
-            locationManager2.startUpdatingLocation()
-            
             GoSellSDK.mode = .production
         }
     }
@@ -574,7 +571,7 @@ struct AddressSelectionView: View {
                     }
                     .disabled(true)
                     .onAppear {
-                        moveToUserLocation()
+                        Utilities.moveToUserLocation(region: $region)
                     }
 
                     VStack {
@@ -629,30 +626,6 @@ struct AddressSelectionView: View {
         .padding()
         .background(Color.gray.opacity(0.1))
         .cornerRadius(10)
-    }
-    
-    func moveToUserLocation() {
-        withAnimation(.easeInOut(duration: 2.0)) {
-            LocationManager.shared.getCurrentLocation { location in
-                if let location = location {
-                    region.center = location
-                    region.span = MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                    let userLocationMark = Mark(
-                        title: "موقعي",
-                        coordinate: CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude),
-                        show: true,
-                        imageName: "ic_logo",
-                        isUserLocation: true
-                    )
-                    
-                    locations.append(userLocationMark)
-                    self.userLocation = location
-                    Utilities.getAddress(for: location) { address in
-                        self.streetName = address
-                    }
-                }
-            }
-        }
     }
 }
 

@@ -10,6 +10,16 @@ import MapKit
 import SwiftUI
 
 class Utilities: NSObject {
+    static func moveToUserLocation(region: Binding<MKCoordinateRegion>, span: MKCoordinateSpan = .init(latitudeDelta: 0.05, longitudeDelta: 0.05)) {
+        let lat = LocationManager.shared.latitude
+        let lng = LocationManager.shared.longitude
+        guard lat != 0, lng != 0 else { return }
+        withAnimation(.easeInOut(duration: 2.0)) {
+            region.wrappedValue.center = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+            region.wrappedValue.span = span
+        }
+    }
+
     static func convertDateStringToDate(stringDate: String, outputFormat: String) -> String? {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" // Input format

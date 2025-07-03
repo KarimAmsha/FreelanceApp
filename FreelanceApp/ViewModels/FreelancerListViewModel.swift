@@ -13,6 +13,18 @@ class FreelancerListViewModel: ObservableObject {
     @Published var isFetchingMoreData = false
     @Published var userSettings = UserSettings.shared
 
+    // فلترة
+    @Published var distanceFrom: Int = 0
+    @Published var distanceTo: Int = 1000
+    @Published var rateFrom: Int = 0
+    @Published var rateTo: Int = 5
+    @Published var profitFrom: Int = 0
+    @Published var profitTo: Int = 10
+
+    // الموقع، يتم جلبها من LocationManager
+    @Published var userLongitude: Double = 0
+    @Published var userLatitude: Double = 0
+
     private var cancellables = Set<AnyCancellable>()
     private let errorHandling: ErrorHandling
     var categoryId: String
@@ -20,7 +32,6 @@ class FreelancerListViewModel: ObservableObject {
     init(categoryId: String, errorHandling: ErrorHandling = ErrorHandling()) {
         self.categoryId = categoryId
         self.errorHandling = errorHandling
-        fetchFreelancers(page: 0)
     }
 
     func fetchFreelancers(page: Int = 0) {
@@ -36,14 +47,27 @@ class FreelancerListViewModel: ObservableObject {
         isFetchingMoreData = page != 0
         errorMessage = nil
 
+        // إعداد الباراميترز ديناميكياً
         var params: [String: Any] = [
             "category": categoryId,
             "page": page,
-            "limit": 20 // عدل حسب الحاجة
+            "limit": 20
         ]
-        if !searchText.isEmpty {
-            params["name"] = searchText
+
+        // أضف الموقع إذا متوفر (غير صفر)
+        if userLongitude != 0 && userLatitude != 0 {
+            params["long"] = userLongitude
+            params["lat"] = userLatitude
         }
+
+        // أضف الفلاتر فقط لو تغيرت عن الافتراضي (اختياري)
+        if distanceFrom > 0 { params["distance_from"] = distanceFrom }
+        if distanceTo < 1000 { params["distance_to"] = distanceTo }
+        if rateFrom > 0 { params["rate_from"] = rateFrom }
+        if rateTo < 5 { params["rate_to"] = rateTo }
+        if profitFrom > 0 { params["profit_from"] = profitFrom }
+        if profitTo < 10 { params["profit_to"] = profitTo }
+        if !searchText.isEmpty { params["name"] = searchText }
 
         let endpoint = APIEndpoint.searchFreelancers(params: params, token: token)
 
@@ -56,6 +80,7 @@ class FreelancerListViewModel: ObservableObject {
         )
         .validate()
         .responseDecodable(of: FreelancerListResponse.self) { [weak self] response in
+            print("eeeee \(response)")
             DispatchQueue.main.async {
                 self?.isLoading = false
                 self?.isFetchingMoreData = false

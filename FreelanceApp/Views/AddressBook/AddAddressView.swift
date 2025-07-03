@@ -211,10 +211,8 @@ struct AddAddressView: View {
         }
         .onAppear {
             // Use the user's current location if available
-            LocationManager.shared.getCurrentLocation { location in
-                if let location = location {
-                    self.userLocation = userLocation
-                }
+            if let location = LocationManager.shared.userCoordinate {
+                userLocation = location
             }
         }
         .overlay(
@@ -250,9 +248,9 @@ struct AddAddressView: View {
 
     func moveToUserLocation() {
         withAnimation(.easeInOut(duration: 2.0)) {
-            LocationManager.shared.getCurrentLocation { location in
-                if let location = location {
-                    region.center = location
+            if let userCoord = LocationManager.shared.userCoordinate {
+                withAnimation(.easeInOut(duration: 2.0)) {
+                    region.center = userCoord
                     region.span = MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
                 }
             }
