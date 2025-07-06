@@ -257,6 +257,12 @@
 		5267FACB2DCD42F20063AF67 /* FirebaseUserService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5267FACA2DCD42F10063AF67 /* FirebaseUserService.swift */; };
 		5267FACD2DCD44850063AF67 /* PushNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5267FACC2DCD44840063AF67 /* PushNotificationService.swift */; };
 		526CBCE12E13CC5500B1324C /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 526CBCE02E13CC5500B1324C /* GoogleService-Info.plist */; };
+		527E2FE92E1A7171009BD0C8 /* NetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 527E2FE82E1A7170009BD0C8 /* NetworkManager.swift */; };
+		527E2FEB2E1A725B009BD0C8 /* ErrorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 527E2FEA2E1A725A009BD0C8 /* ErrorManager.swift */; };
+		527E2FED2E1A7333009BD0C8 /* SnackbarErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 527E2FEC2E1A7332009BD0C8 /* SnackbarErrorView.swift */; };
+		527E2FEF2E1A7476009BD0C8 /* ProgressOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 527E2FEE2E1A7474009BD0C8 /* ProgressOverlayView.swift */; };
+		527E2FF12E1A7A39009BD0C8 /* AdvancedProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 527E2FF02E1A7A35009BD0C8 /* AdvancedProgressView.swift */; };
+		527E2FF32E1A8716009BD0C8 /* MainSpecialtySelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 527E2FF22E1A8713009BD0C8 /* MainSpecialtySelectionView.swift */; };
 		52A8C2F92E0A969900D0C59B /* RegistrationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A8C2F82E0A969800D0C59B /* RegistrationViewModel.swift */; };
 		52A8C2FB2E0AA5D900D0C59B /* ImageVideoPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A8C2FA2E0AA5D800D0C59B /* ImageVideoPicker.swift */; };
 		52A8C2FD2E0AA5F100D0C59B /* FileDocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A8C2FC2E0AA5F000D0C59B /* FileDocumentPicker.swift */; };
@@ -282,7 +288,7 @@
 		52C6AD742DCA517700D0A672 /* ConfirmPhoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52C6AD732DCA517500D0A672 /* ConfirmPhoneView.swift */; };
 		52C6AD762DCA519400D0A672 /* SuccessSubmissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52C6AD752DCA519300D0A672 /* SuccessSubmissionView.swift */; };
 		52C6AD782DCA51D600D0A672 /* RegistrationFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52C6AD772DCA51D400D0A672 /* RegistrationFlowView.swift */; };
-		52C6AD7A2DCA544D00D0A672 /* SpecialtySelectionPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52C6AD792DCA544C00D0A672 /* SpecialtySelectionPopup.swift */; };
+		52C6AD7A2DCA544D00D0A672 /* SingleSpecialtyGridSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52C6AD792DCA544C00D0A672 /* SingleSpecialtyGridSelectionView.swift */; };
 		52D9E6C22DCB64DF00ED2874 /* PrivacyPolicyAgreementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D9E6C12DCB64DE00ED2874 /* PrivacyPolicyAgreementView.swift */; };
 		52D9E6CC2DCB92AA00ED2874 /* MainTabItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D9E6CB2DCB92A800ED2874 /* MainTabItem.swift */; };
 		52D9E6D22DCB956400ED2874 /* ProjectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D9E6D12DCB956400ED2874 /* ProjectsView.swift */; };
@@ -517,6 +523,12 @@
 		5267FACA2DCD42F10063AF67 /* FirebaseUserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseUserService.swift; sourceTree = "<group>"; };
 		5267FACC2DCD44840063AF67 /* PushNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationService.swift; sourceTree = "<group>"; };
 		526CBCE02E13CC5500B1324C /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		527E2FE82E1A7170009BD0C8 /* NetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkManager.swift; sourceTree = "<group>"; };
+		527E2FEA2E1A725A009BD0C8 /* ErrorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorManager.swift; sourceTree = "<group>"; };
+		527E2FEC2E1A7332009BD0C8 /* SnackbarErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnackbarErrorView.swift; sourceTree = "<group>"; };
+		527E2FEE2E1A7474009BD0C8 /* ProgressOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressOverlayView.swift; sourceTree = "<group>"; };
+		527E2FF02E1A7A35009BD0C8 /* AdvancedProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedProgressView.swift; sourceTree = "<group>"; };
+		527E2FF22E1A8713009BD0C8 /* MainSpecialtySelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainSpecialtySelectionView.swift; sourceTree = "<group>"; };
 		52A8C2F82E0A969800D0C59B /* RegistrationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationViewModel.swift; sourceTree = "<group>"; };
 		52A8C2FA2E0AA5D800D0C59B /* ImageVideoPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageVideoPicker.swift; sourceTree = "<group>"; };
 		52A8C2FC2E0AA5F000D0C59B /* FileDocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDocumentPicker.swift; sourceTree = "<group>"; };
@@ -542,7 +554,7 @@
 		52C6AD732DCA517500D0A672 /* ConfirmPhoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfirmPhoneView.swift; sourceTree = "<group>"; };
 		52C6AD752DCA519300D0A672 /* SuccessSubmissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuccessSubmissionView.swift; sourceTree = "<group>"; };
 		52C6AD772DCA51D400D0A672 /* RegistrationFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationFlowView.swift; sourceTree = "<group>"; };
-		52C6AD792DCA544C00D0A672 /* SpecialtySelectionPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpecialtySelectionPopup.swift; sourceTree = "<group>"; };
+		52C6AD792DCA544C00D0A672 /* SingleSpecialtyGridSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SingleSpecialtyGridSelectionView.swift; sourceTree = "<group>"; };
 		52D9E6C12DCB64DE00ED2874 /* PrivacyPolicyAgreementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyPolicyAgreementView.swift; sourceTree = "<group>"; };
 		52D9E6CB2DCB92A800ED2874 /* MainTabItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabItem.swift; sourceTree = "<group>"; };
 		52D9E6D12DCB956400ED2874 /* ProjectsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsView.swift; sourceTree = "<group>"; };
@@ -686,6 +698,7 @@
 		1ECC94492BDC56CF002BFE54 /* Networking */ = {
 			isa = PBXGroup;
 			children = (
+				527E2FE82E1A7170009BD0C8 /* NetworkManager.swift */,
 				5267FACC2DCD44840063AF67 /* PushNotificationService.swift */,
 				5267FACA2DCD42F10063AF67 /* FirebaseUserService.swift */,
 				1ECC94532BDC57D3002BFE54 /* APIEndpoint.swift */,
@@ -708,6 +721,7 @@
 		1ECC944B2BDC56DE002BFE54 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				527E2FEA2E1A725A009BD0C8 /* ErrorManager.swift */,
 				52A916872E156490002C8668 /* FreelancerListViewModel.swift */,
 				52A916812E152E6F002C8668 /* PhoneEditAndVerifyViewModel.swift */,
 				52A8C2F82E0A969800D0C59B /* RegistrationViewModel.swift */,
@@ -935,6 +949,9 @@
 		1ECC95102BDD17AD002BFE54 /* Alerts */ = {
 			isa = PBXGroup;
 			children = (
+				527E2FF02E1A7A35009BD0C8 /* AdvancedProgressView.swift */,
+				527E2FEE2E1A7474009BD0C8 /* ProgressOverlayView.swift */,
+				527E2FEC2E1A7332009BD0C8 /* SnackbarErrorView.swift */,
 				1ECC95112BDD17B9002BFE54 /* GeneralErrorToastView.swift */,
 				1ECC95132BDD17D1002BFE54 /* AlertView.swift */,
 				1ECC95152BDD17E4002BFE54 /* InputAlertView.swift */,
@@ -1005,6 +1022,7 @@
 		1EDEF6692BE167E400863C10 /* Profile */ = {
 			isa = PBXGroup;
 			children = (
+				527E2FF22E1A8713009BD0C8 /* MainSpecialtySelectionView.swift */,
 				52A9167F2E152E22002C8668 /* OTPVerificationView.swift */,
 				52A9167D2E152DF6002C8668 /* PhoneChangeView.swift */,
 				5235B1A02DCCD761009F75FA /* AccountSettingsView.swift */,
@@ -1144,7 +1162,7 @@
 			isa = PBXGroup;
 			children = (
 				52D9E6C12DCB64DE00ED2874 /* PrivacyPolicyAgreementView.swift */,
-				52C6AD792DCA544C00D0A672 /* SpecialtySelectionPopup.swift */,
+				52C6AD792DCA544C00D0A672 /* SingleSpecialtyGridSelectionView.swift */,
 				52C6AD772DCA51D400D0A672 /* RegistrationFlowView.swift */,
 				52C6AD752DCA519300D0A672 /* SuccessSubmissionView.swift */,
 				52C6AD732DCA517500D0A672 /* ConfirmPhoneView.swift */,
@@ -1389,6 +1407,7 @@
 				1ECC95142BDD17D1002BFE54 /* AlertView.swift in Sources */,
 				1EDEF66D2BE1689200863C10 /* CustomListItem.swift in Sources */,
 				1EA6D31C2C1D961F007E8AE0 /* WishCheckOutView.swift in Sources */,
+				527E2FF32E1A8716009BD0C8 /* MainSpecialtySelectionView.swift in Sources */,
 				1ECC95372BDD8150002BFE54 /* PersonalInfoView.swift in Sources */,
 				1EA6D3212C1DB0E7007E8AE0 /* TransactionsRowiew.swift in Sources */,
 				1E2804342C04D4DA0021DFB0 /* NotificationsStruct.swift in Sources */,
@@ -1397,7 +1416,7 @@
 				1ECC95092BDD15A5002BFE54 /* LoginView.swift in Sources */,
 				5267FAB72DCD3D930063AF67 /* FirebaseUser.swift in Sources */,
 				1ECC95392BDD81EF002BFE54 /* LocationManager.swift in Sources */,
-				52C6AD7A2DCA544D00D0A672 /* SpecialtySelectionPopup.swift in Sources */,
+				52C6AD7A2DCA544D00D0A672 /* SingleSpecialtyGridSelectionView.swift in Sources */,
 				1EA7FEEF2C1A0BC100823465 /* EditGroupView.swift in Sources */,
 				1E0053382C1F009800C75E42 /* MyWishView.swift in Sources */,
 				1ED8DE372C22EFD000613489 /* CustomeEmptyView.swift in Sources */,
@@ -1417,6 +1436,7 @@
 				1ECC94CE2BDC5E49002BFE54 /* CustomToggleStyle.swift in Sources */,
 				1EA7405C2BFBE9300028AAD0 /* Settings.swift in Sources */,
 				1ECC947B2BDC5B8B002BFE54 /* Utilities.swift in Sources */,
+				527E2FF12E1A7A39009BD0C8 /* AdvancedProgressView.swift in Sources */,
 				1EDEF67F2BE19AB800863C10 /* RatingView.swift in Sources */,
 				1EA7404E2BFB8EED0028AAD0 /* HomeItems.swift in Sources */,
 				52C6AD6E2DCA511200D0A672 /* RegistrationPersonalInfoView.swift in Sources */,
@@ -1481,6 +1501,7 @@
 				1EA7FEEB2C19EB8000823465 /* AddGroupView.swift in Sources */,
 				1E28043C2C04FE160021DFB0 /* CheckoutView.swift in Sources */,
 				1ECC95442BDDAC4A002BFE54 /* HomeView.swift in Sources */,
+				527E2FE92E1A7171009BD0C8 /* NetworkManager.swift in Sources */,
 				1EDEF66F2BE1747A00863C10 /* EditProfileView.swift in Sources */,
 				1E28042E2C04D3F30021DFB0 /* NotificationRowView.swift in Sources */,
 				1EDEF6782BE17C0C00863C10 /* OrderDetailsView.swift in Sources */,
@@ -1572,6 +1593,7 @@
 				1EFB9B292C1B9BE200C15CE4 /* AddReminder.swift in Sources */,
 				1ECC953B2BDD8275002BFE54 /* MediaPickerViewModel.swift in Sources */,
 				1EA7FEED2C19FB6C00823465 /* CreateGroup.swift in Sources */,
+				527E2FEF2E1A7476009BD0C8 /* ProgressOverlayView.swift in Sources */,
 				1EFB9B352C1C4CFE00C15CE4 /* VIPGiftView.swift in Sources */,
 				1ECC94FC2BDD133A002BFE54 /* DataProvider.swift in Sources */,
 				1ECC951E2BDD1874002BFE54 /* CustomTextFieldWithTitle.swift in Sources */,
@@ -1582,11 +1604,13 @@
 				1E28041D2C04C6B00021DFB0 /* Mark.swift in Sources */,
 				1ECC95352BDD77FF002BFE54 /* AppState.swift in Sources */,
 				52C6AD602DCA4DA800D0A672 /* RegistrationRoleView.swift in Sources */,
+				527E2FEB2E1A725B009BD0C8 /* ErrorManager.swift in Sources */,
 				1EA562392C0776440016B508 /* OrderDetails.swift in Sources */,
 				1E2804402C0506F70021DFB0 /* ShowMapView.swift in Sources */,
 				1E2804182C04C6700021DFB0 /* AddressDetailsView.swift in Sources */,
 				52AEC8DF2DCBF27C00B4FC84 /* ServiceRatingView.swift in Sources */,
 				1ECC94702BDC5B68002BFE54 /* Int+Extensions.swift in Sources */,
+				527E2FED2E1A7333009BD0C8 /* SnackbarErrorView.swift in Sources */,
 				1EC27FE42C034F440007279D /* MainCategory.swift in Sources */,
 				1ECC950D2BDD1642002BFE54 /* CPData.swift in Sources */,
 				5235B1A52DCCE432009F75FA /* FreelancerProfileView.swift in Sources */,

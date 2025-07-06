@@ -130,7 +130,7 @@ struct RegistrationFlowView: View {
                 }
             }
         case .workInfo:
-            if regViewModel.selectedCategoryIds.isEmpty {
+            if regViewModel.mainCategoryId == nil {
                 regViewModel.errorMessage = "يرجى اختيار التخصص"
                 return
             }

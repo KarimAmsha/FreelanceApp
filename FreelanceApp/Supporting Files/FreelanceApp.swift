@@ -19,8 +19,7 @@ struct FreelanceApp: App {
     @StateObject private var authViewModel = AuthViewModel(errorHandling: ErrorHandling())
     @StateObject private var userViewModel = UserViewModel(errorHandling: ErrorHandling())
     @StateObject private var settings = UserSettings.shared
-//    @StateObject private var notificationHandler = NotificationHandler()
-//    @StateObject private var chatHelper = ChatHelper()
+    @StateObject var errorManager = ErrorManager()
 
     init() {
         UserDefaults.standard.set([languageManager.currentLanguage.identifier], forKey: "AppleLanguages")
@@ -36,8 +35,7 @@ struct FreelanceApp: App {
                 .environmentObject(appState)
                 .environmentObject(authViewModel)
                 .environmentObject(settings)
-//                .environmentObject(notificationHandler)
-//                .environmentObject(chatHelper)
+                .environmentObject(errorManager)
                 .preferredColorScheme(.light)
         }
     }

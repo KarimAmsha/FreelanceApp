@@ -39,41 +39,39 @@ struct User: Codable, Hashable, Identifiable {
     let wallet: Double?
     let rate: Double?
     let by: String?
-    let categories: [String]?
     let bio: String?
     let register_type: String?
     let app_type: String?
     let loc: Point?
+    let category: String?
+    let subcategory: String?
+    let services: Int?
+    let profit: Int?
+    let completed: Int?
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"
         case full_name, reg_no, email, password, phone_number, image, id_image, dob, os, lat, lng
         case fcmToken, verify_code, isEnableNotifications, token, address, city, country, work
-        case createAt, isVerify, isBlock, wallet, rate, by, categories, bio, register_type, app_type, loc
+        case createAt, isVerify, isBlock, wallet, rate, by, bio, register_type, app_type, loc
+        case category, subcategory, services, profit, completed
     }
 }
 
 extension User {
     var formattedDOB: String? {
         guard let dob = dob else { return nil }
-        // حاول فك التاريخ أولاً
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        
         var date: Date? = isoFormatter.date(from: dob)
-        
-        // جرب بدون fractional seconds إذا فشل
         if date == nil {
             let isoNoFraction = ISO8601DateFormatter()
             isoNoFraction.formatOptions = [.withInternetDateTime]
             date = isoNoFraction.date(from: dob)
         }
-        
         guard let realDate = date else { return nil }
-        
         let formatter = DateFormatter()
-        formatter.dateFormat = "dd-MM-yyyy" // غير الصيغة حسب رغبتك
+        formatter.dateFormat = "dd-MM-yyyy"
         return formatter.string(from: realDate)
     }
 }
-

@@ -25,16 +25,18 @@ struct ProfileRequest: Encodable {
     let full_name: String
     let lat: Double
     let lng: Double
-    let address: String
-    let bio: String
-    let dob: String?         // personal فقط
-    let reg_no: String?      // company فقط
-    let categories: [String]? // personal فقط
-    let image: String?       // Firebase URL
-    let id_img: String?      // Firebase URL
+    let reg_no: String?
+    let address: String?
+    let country: String?
+    let city: String?
+    let dob: String?
+    let category: String?
+    let subcategory: String?
+    let work: String?
+    let bio: String?
+    let image: String?
+    let id_img: String?
 }
-
-// MARK: - Main ViewModel
 
 class RegistrationViewModel: ObservableObject {
     @Published var selectedRole: UserRole? = .company
@@ -52,26 +54,24 @@ class RegistrationViewModel: ObservableObject {
     @Published var full_name: String = ""
     @Published var address: String = ""
     @Published var dob: String = ""
-    @Published var categories: [String] = []
     @Published var bio: String = ""
-    @Published var imageURL: String?    // صورة شخصية (Firebase)
-    @Published var idImageURL: String?  // صورة هوية (Firebase)
+    @Published var imageURL: String? = nil
+    @Published var idImageURL: String? = nil
 
     // حقل الشركة فقط
     @Published var reg_no: String = ""
 
-    // التصنيفات والتخصصات
+    // الحقول المشتركة والإضافية
+    @Published var country: String = ""
+    @Published var city: String = ""
+    @Published var work: String = ""        // sector/type id
+    @Published var subcategory: String = "" // subcategory id
+
+    // التخصصات
     @Published var allCategories: [Category] = []
     @Published var allTypes: [TypeItem] = []
-    @Published var selectedCategoryIds: [String] = [] {
-        didSet {
-            mainSpecialty = allCategories
-                .filter { selectedCategoryIds.contains($0.id ?? "") }
-                .map { $0.title ?? "" }
-                .joined(separator: "، ")
-        }
-    }
-    @Published var mainSpecialty: String = ""
+    @Published var mainCategoryId: String? = nil   // category id (التخصص الرئيسي)
+
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     private var cancellables = Set<AnyCancellable>()
@@ -79,7 +79,7 @@ class RegistrationViewModel: ObservableObject {
     @Published var user: User?
     @Published var isPhoneVerified: Bool = false
     @Published var otp: String = ""
-    @Published var countryCode: String = "966" // أو الكود الافتراضي حسب تطبيقك
+    @Published var countryCode: String = "966" // الكود الافتراضي
 
     var register_type: String {
         selectedRole?.rawValue ?? ""
@@ -109,16 +109,20 @@ class RegistrationViewModel: ObservableObject {
             full_name: full_name,
             lat: lat,
             lng: lng,
-            address: address,
-            bio: bio,
-            dob: selectedRole == .personal ? dob : nil,
-            reg_no: selectedRole == .company ? reg_no : nil,
-            categories: selectedRole == .personal ? (selectedCategoryIds.isEmpty ? categories : selectedCategoryIds) : nil,
+            reg_no: selectedRole == .company ? (reg_no.isEmpty ? nil : reg_no) : nil,
+            address: address.isEmpty ? nil : address,
+            country: country.isEmpty ? nil : country,
+            city: city.isEmpty ? nil : city,
+            dob: selectedRole == .personal ? (dob.isEmpty ? nil : dob) : nil,
+            category: selectedRole == .personal ? mainCategoryId : nil,
+            subcategory: subcategory.isEmpty ? nil : subcategory,
+            work: work.isEmpty ? nil : work,
+            bio: bio.isEmpty ? nil : bio,
             image: imageURL,
             id_img: idImageURL
         )
     }
-    
+
     func toVerifyRequest(verifyCode: String) -> VerifyRequest? {
         guard let id = user?.id else { return nil }
         return VerifyRequest(
@@ -143,15 +147,12 @@ class RegistrationViewModel: ObservableObject {
                 if apiResponse.status, let user = apiResponse.items {
                     self.user = user
                     print("ssss \(user)")
-                    // 👇 هنا الفحص
                     if !(user.full_name ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        // سجل دخوله وادخله التطبيق مباشرة
                         self.handleUserData()
                         DispatchQueue.main.async {
                             NotificationCenter.default.post(name: .didLoginSuccessfully, object: nil)
                         }
                     }
-                    // إذا فارغ يكمل باقي الخطوات
                     completion(.success(user))
                 } else {
                     self.errorMessage = apiResponse.message
@@ -203,14 +204,11 @@ class RegistrationViewModel: ObservableObject {
             completion(.failure(err))
             return
         }
-        print("uuuu \(request)")
-
         DataProvider.shared.sendRequest(
             endpoint: .verify(params: request.asDictionary() ?? [:]),
             body: request,
             responseType: SingleAPIResponse<User>.self
         ) { [weak self] result in
-            print("resultresult \(result)")
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
@@ -222,13 +220,11 @@ class RegistrationViewModel: ObservableObject {
                         self?.errorMessage = nil
                         completion(.success(user))
                     } else {
-                        // هنا دائما تأكد الرسالة بتنعرض كما هي من السيرفر
                         let err = APIClient.APIError.customError(message: apiResponse.message)
                         self?.errorMessage = err.localizedDescription
                         completion(.failure(err))
                     }
                 case .failure(let error):
-                    // افحص هل الخطأ من نوع APIError ليعرض الرسالة بشكل صحيح
                     if let apiError = error as? APIClient.APIError {
                         self?.errorMessage = apiError.localizedDescription
                         completion(.failure(apiError))
@@ -290,14 +286,17 @@ class RegistrationViewModel: ObservableObject {
         full_name = ""
         address = ""
         dob = ""
-        categories = []
         bio = ""
-        imageURL = ""
-        idImageURL = ""
+        imageURL = nil
+        idImageURL = nil
         reg_no = ""
         allCategories = []
-        selectedCategoryIds = []
-        mainSpecialty = ""
+        allTypes = []
+        mainCategoryId = nil
+        country = ""
+        city = ""
+        work = ""
+        subcategory = ""
         errorMessage = nil
         isLoading = false
     }

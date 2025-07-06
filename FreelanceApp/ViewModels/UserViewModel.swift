@@ -59,7 +59,6 @@ class UserViewModel: ObservableObject {
             self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
             return
         }
-        print("tokentoken \(token)")
 
         startUpload()
         errorMessage = nil
@@ -71,7 +70,6 @@ class UserViewModel: ObservableObject {
                 case .finished:
                     self.finishUpload()
                 case .failure(let error):
-                    print("1111 \(error)")
                     // Use the centralized error handling component
                     self.handleAPIError(error)
                     self.finishUpload()
@@ -84,7 +82,6 @@ class UserViewModel: ObservableObject {
                     self?.errorMessage = nil
                     onsuccess(response.message)
                 } else {
-                    print("2222 \(response.message)")
                     // Use the centralized error handling component
                     self?.handleAPIError(.customError(message: response.message))
                 }

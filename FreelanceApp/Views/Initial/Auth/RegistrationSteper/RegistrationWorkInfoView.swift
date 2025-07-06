@@ -5,81 +5,75 @@ struct RegistrationWorkInfoView: View {
     @ObservedObject var viewModel: RegistrationViewModel
     @Binding var showSpecialtyPopup: Bool
 
-    var selectedCategories: [Category] {
-        viewModel.allCategories.filter { viewModel.selectedCategoryIds.contains($0.id ?? "") }
+    // التخصص المختار
+    var selectedCategory: Category? {
+        viewModel.allCategories.first(where: { $0.id == viewModel.mainCategoryId })
     }
 
     var body: some View {
         VStack(spacing: 28) {
             RegistrationStepHeader(
                 title: "تفاصيل العمل",
-                subtitle: "اختر التخصصات بدقة، يمكنك إضافة أكثر من تخصص مناسب لمهاراتك."
+                subtitle: "اختر التخصص الرئيسي المناسب لمهاراتك، يمكنك تغييره لاحقًا من إعدادات الحساب."
             )
 
             VStack(alignment: .leading, spacing: 16) {
-                Text("تخصصاتك المختارة")
+                Text("تخصصك المختار")
                     .font(.headline)
                     .foregroundColor(.primary)
 
-                // شيبس التخصصات
-                if selectedCategories.isEmpty {
-                    Text("لم يتم اختيار تخصصات بعد")
+                // عرض التخصص المختار أو رسالة عدم وجوده
+                if let cat = selectedCategory {
+                    HStack(spacing: 8) {
+                        if let urlStr = cat.image, let url = URL(string: urlStr) {
+                            AsyncImage(url: url) { img in
+                                img.resizable()
+                            } placeholder: {
+                                Color.gray.opacity(0.2)
+                            }
+                            .frame(width: 28, height: 28)
+                            .clipShape(Circle())
+                        }
+                        Text(cat.title ?? "")
+                            .font(.subheadline.bold())
+                            .foregroundColor(.primary)
+                        Button {
+                            // إزالة التخصص المختار
+                            withAnimation {
+                                viewModel.mainCategoryId = nil
+                            }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(.red.opacity(0.75))
+                                .padding(.leading, 2)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(Color.yellowF8B22A().opacity(0.13))
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.yellowF8B22A(), lineWidth: 1)
+                    )
+                } else {
+                    Text("لم يتم اختيار تخصص بعد")
                         .foregroundColor(.gray)
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .background(Color.gray.opacity(0.08))
                         .cornerRadius(10)
-                } else {
-                    // عرض شيبس تخصصات مختارة مع إمكانية الإزالة
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(selectedCategories, id: \.id) { cat in
-                                HStack(spacing: 4) {
-                                    if let urlStr = cat.image, let url = URL(string: urlStr) {
-                                        AsyncImage(url: url) { img in
-                                            img.resizable()
-                                        } placeholder: {
-                                            Color.gray.opacity(0.2)
-                                        }
-                                        .frame(width: 22, height: 22)
-                                        .clipShape(Circle())
-                                    }
-                                    Text(cat.title ?? "")
-                                        .font(.subheadline.bold())
-                                        .foregroundColor(.primary)
-                                    Button {
-                                        withAnimation {
-                                            viewModel.selectedCategoryIds.removeAll { $0 == cat.id }
-                                        }
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .font(.system(size: 16))
-                                            .foregroundColor(.red.opacity(0.75))
-                                            .padding(.leading, 2)
-                                    }
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 7)
-                                .background(Color.yellowF8B22A().opacity(0.15))
-                                .clipShape(Capsule())
-                                .overlay(
-                                    Capsule()
-                                        .stroke(Color.yellowF8B22A(), lineWidth: 1)
-                                )
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
                 }
 
-                // زر إضافة تخصص
+                // زر إضافة/تغيير تخصص
                 Button {
                     showSpecialtyPopup = true
                 } label: {
                     HStack {
                         Image(systemName: "plus.circle.fill")
                             .foregroundColor(Color.yellowF8B22A())
-                        Text("إضافة تخصص")
+                        Text(selectedCategory == nil ? "إضافة تخصص" : "تغيير التخصص")
                             .foregroundColor(Color.primaryBlack())
                             .fontWeight(.semibold)
                     }
@@ -107,10 +101,10 @@ struct RegistrationWorkInfoView: View {
             }
         }
         .popup(isPresented: $showSpecialtyPopup) {
-            SpecialtySelectionPopup(
+            SingleSpecialtyGridSelectionView(
                 isPresented: $showSpecialtyPopup,
                 categories: viewModel.allCategories,
-                selectedCategoryIds: $viewModel.selectedCategoryIds
+                selectedCategoryId: $viewModel.mainCategoryId
             )
         } customize: {
             $0
@@ -132,6 +126,6 @@ struct RegistrationWorkInfoView: View {
         Category(id: "1", title: "مصمم", description: nil, image: nil, sub: []),
         Category(id: "2", title: "مهندس برمجيات", description: nil, image: nil, sub: [])
     ]
-    vm.selectedCategoryIds = ["1"]
+    vm.mainCategoryId = "1"
     return RegistrationWorkInfoView(viewModel: vm, showSpecialtyPopup: .constant(false))
 }

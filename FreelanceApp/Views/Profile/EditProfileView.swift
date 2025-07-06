@@ -16,6 +16,9 @@ struct EditProfileView: View {
 
     // لتحسين bottom sheet التجريبي بدل الـActionSheet
     @State private var showCustomSheet = false
+    @State private var uploadingProfile = false
+    @State private var profileUploadProgress: Double? = nil
+    @EnvironmentObject var errorManager: ErrorManager // إذا أردت تظهر خطأ عن طريق Snackbar/Alert
 
     var body: some View {
         VStack(spacing: 0) {
@@ -46,6 +49,18 @@ struct EditProfileView: View {
                             .padding(.horizontal)
                             .frame(height: 48)
                             .background(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.22), lineWidth: 1))
+                    }
+
+                    if uploadingProfile {
+                        AdvancedProgressView(
+                            progress: profileUploadProgress ?? 0, // أو 0.01 ليظهر قليل من اللون
+                            icon: "person.crop.circle.fill",
+                            color: .primary(),
+                            bgColor: .gray.opacity(0.17),
+                            size: 64,
+                            text: "جاري رفع الصورة"
+                        )
+                        .frame(maxWidth: .infinity, alignment: .center)
                     }
 
                     // MARK: - Save Button
@@ -110,6 +125,18 @@ struct EditProfileView: View {
                 message: $viewModel.errorMessage,
                 alertType: .constant(.error)
             )
+        )
+        .overlay(
+            VStack {
+                if errorManager.show {
+                    SnackbarErrorView(
+                        message: errorManager.message,
+                        type: errorManager.type
+                    ) {
+                        errorManager.hide()
+                    }
+                }
+            }
         )
         .navigationBarBackButtonHidden()
         .toolbar {
@@ -235,15 +262,22 @@ struct EditProfileView: View {
         let userId = viewModel.user?.id ?? viewModel.user?.phone_number ?? "unknown"
 
         if let image = image {
-            FirestoreService.shared.uploadImageWithThumbnail(
+            uploadingProfile = true
+            profileUploadProgress = 0
+
+            NetworkManager.shared.uploadImage(
                 image: image,
-                id: userId,
-                imageName: "profile"
-            ) { url, success in
-                if success, let url = url {
+                progressHandler: { progress in
+                    profileUploadProgress = progress
+                }
+            ) { result in
+                uploadingProfile = false
+                profileUploadProgress = nil
+                switch result {
+                case .success(let url):
                     self.performProfileUpdate(imageURL: url)
-                } else {
-                    showMessage(message: "فشل رفع الصورة. حاول مرة أخرى.")
+                case .failure(let error):
+                    showMessage(message: "فشل رفع الصورة. حاول مرة أخرى.\n\(error.localizedDescription)")
                 }
             }
         } else {
@@ -260,7 +294,7 @@ struct EditProfileView: View {
             "lng": userLocation?.longitude ?? 0.0,
             "image": imageURL ?? ""
         ]
-        viewModel.updateUserDataWithImage(imageData: nil, additionalParams: params) { message in
+        viewModel.updateUserData(params: params) { message in
             showMessage(message: message)
         }
     }

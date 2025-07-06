@@ -16,6 +16,7 @@ struct MainView: View {
     @ObservedObject var appRouter = AppRouter()
     @ObservedObject var viewModel = InitialViewModel(errorHandling: ErrorHandling())
     @StateObject var cartViewModel = CartViewModel(errorHandling: ErrorHandling())
+    @StateObject var registrationViewModel = RegistrationViewModel(errorHandling: ErrorHandling())
     private var tabItems: [MainTabItem] {
         var items: [MainTabItem] = [
             MainTabItem(page: .home, iconSystemName: "house", title: "الرئيسية"),
@@ -155,6 +156,7 @@ struct MainView: View {
         }
         .accentColor(.black)
         .environmentObject(appRouter)
+        .environmentObject(registrationViewModel)
     }
 }
 
@@ -259,6 +261,9 @@ extension MainView {
             ServiceDetailsView()
         case .chat(let chatId, let currentUserId):
             ChatDetailView(chatId: chatId, currentUserId: currentUserId)
+        case .selectMainSpecialty:
+            MainSpecialtySelectionView(viewModel: registrationViewModel)
+                .environmentObject(appRouter)
         }
     }
 }

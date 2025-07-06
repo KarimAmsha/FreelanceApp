@@ -9,14 +9,13 @@ import SwiftUI
 
 struct AccountSettingsView: View {
     @EnvironmentObject var appRouter: AppRouter
+    @State private var selectedCategoryId: String? = nil
+    @State private var allCategories: [Category] = []
+    @State private var showSpecialtySelector = false
 
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
-                settingsRow(title: "تغيير كلمة المرور") {
-                    appRouter.navigate(to: .changePassword)
-                }
-                Divider()
                 settingsRow(title: "تغيير اسم وصورة العرض") {
                     appRouter.navigate(to: .editProfile)
                 }
@@ -24,10 +23,10 @@ struct AccountSettingsView: View {
                 settingsRow(title: "تحديث رقم الهاتف") {
                     appRouter.navigate(to: .changePhoneNumber)
                 }
-//                Divider()
-//                settingsRow(title: "تغيير التخصص الرئيسي") {
-//                    appRouter.navigate(to: .changeSpecialization)
-//                }
+                Divider()
+                settingsRow(title: "تغيير التخصص الرئيسي") {
+                    appRouter.navigate(to: .selectMainSpecialty)
+                }
             }
             .padding()
             .background(Color.white)
@@ -78,3 +77,4 @@ struct AccountSettingsView: View {
         .buttonStyle(PlainButtonStyle())
     }
 }
+
