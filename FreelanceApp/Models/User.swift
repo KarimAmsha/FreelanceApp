@@ -77,7 +77,6 @@ extension User {
 }
 
 extension User {
-    /// يعيد التخصص الرئيسي حسب نوع المستخدم تلقائيًا (category أو work)
     var mainSpecialtyId: String? {
         if register_type == "personal" {
             return category

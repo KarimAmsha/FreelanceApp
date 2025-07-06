@@ -16,6 +16,10 @@ struct MainSpecialtySelectionView: View {
 
     // عند أول ظهور: جلب التصنيفات وتحديد التخصص الحالي من بيانات المستخدم
     private func syncInitialCategory() {
+        print("1111 \(userViewModel.user)")
+        print("2222 \(UserSettings.shared.user)")
+        print("3333 \(UserSettings.shared.user?.mainSpecialtyId)")
+
         if let mainCat = UserSettings.shared.user?.mainSpecialtyId {
             viewModel.mainCategoryId = mainCat
         }
@@ -120,13 +124,16 @@ struct MainSpecialtySelectionView: View {
                             "lng": user?.lng ?? 0.0,
                         ]
                         // --- إضافة التخصص المختار حسب نوع المستخدم ---
-                        if viewModel.register_type == "personal" {
+                        let userRole = UserSettings.shared.userRole
+                        if userRole == .personal {
                             params["category"] = catId
-                        } else if viewModel.register_type == "company" {
+                        } else if userRole == .company {
                             params["work"] = catId
                         }
 
+                        print("params \(params)")
                         // بعد نجاح التحديث مباشرة (في الـ callback)
+                        
                         userViewModel.updateUserData(params: params) { message in
                             isUpdating = false
                             // التحديث الجديد مباشرةً من الـ userViewModel.user الجديد
