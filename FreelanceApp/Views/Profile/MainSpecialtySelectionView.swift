@@ -16,11 +16,8 @@ struct MainSpecialtySelectionView: View {
 
     // عند أول ظهور: جلب التصنيفات وتحديد التخصص الحالي من بيانات المستخدم
     private func syncInitialCategory() {
-        let user = UserSettings.shared.user
-        if viewModel.register_type == "personal" {
-            viewModel.mainCategoryId = user?.category
-        } else if viewModel.register_type == "company" {
-            viewModel.mainCategoryId = user?.work
+        if let mainCat = UserSettings.shared.user?.mainSpecialtyId {
+            viewModel.mainCategoryId = mainCat
         }
         if viewModel.allCategories.isEmpty {
             viewModel.getMainCategories()

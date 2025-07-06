@@ -75,3 +75,15 @@ extension User {
         return formatter.string(from: realDate)
     }
 }
+
+extension User {
+    /// يعيد التخصص الرئيسي حسب نوع المستخدم تلقائيًا (category أو work)
+    var mainSpecialtyId: String? {
+        if register_type == "personal" {
+            return category
+        } else if register_type == "company" {
+            return work
+        }
+        return nil
+    }
+}
