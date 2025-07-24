@@ -2,104 +2,96 @@ import Foundation
 import CoreLocation
 import Combine
 
-final class LocationManager: NSObject, ObservableObject {
-    // Singleton (استخدمها إذا بدك مدير موحد لكل التطبيق)
+// MARK: - Location Manager
+@MainActor
+final class LocationManager: NSObject, ObservableObject, StateManaging {
+
+    // MARK: - Singleton
     static let shared = LocationManager()
-    
-    // MARK: - Core Location
+
+    // MARK: - Core Location Components
     private let locationManager = CLLocationManager()
     private let geocoder = CLGeocoder()
-    
-    // MARK: - Published Vars (تراقبها SwiftUI)
+
+    // MARK: - Routing (Optional)
+    var appRouter: AppRouter?
+
+    // MARK: - Published Properties
+    @Published var state: LoadingState = .idle
     @Published var location: CLLocation?
     @Published var latitude: Double = 0
     @Published var longitude: Double = 0
     @Published var userCoordinate: CLLocationCoordinate2D?
     @Published var address: String = ""
-    @Published var isLoading: Bool = false
+    @Published var placemark: CLPlacemark?
     @Published var permissionDenied: Bool = false
     @Published var locationServicesDisabled: Bool = false
-    @Published var errorMessage: String? = nil
-    @Published var updatingContinuously: Bool = false   // 🔥 هل أنت بوضع "تتبع مستمر" أم لا؟
-    
+    @Published var updatingContinuously: Bool = false
+
+    // Callback for external updates
+    var onLocationUpdate: ((CLLocation) -> Void)? = nil
+
+    // MARK: - Init
     override private init() {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
     }
-    
-    // MARK: - طلب الموقع مرة واحدة فقط (الأكثر شيوعاً)
+
+    // MARK: - Public Methods
     func requestLocationOnce() {
-        isLoading = true
-        updatingContinuously = false
-        errorMessage = nil
-        if !CLLocationManager.locationServicesEnabled() {
-            self.locationServicesDisabled = true
-            self.isLoading = false
-            self.errorMessage = "خدمات الموقع غير مفعلة."
-            return
-        }
-        switch locationManager.authorizationStatus {
-        case .notDetermined:
-            locationManager.requestWhenInUseAuthorization()
-        case .restricted, .denied:
-            self.permissionDenied = true
-            self.isLoading = false
-            self.errorMessage = "لم يتم السماح بالوصول للموقع. فعّل الصلاحيات من الإعدادات."
-        case .authorizedWhenInUse, .authorizedAlways:
-            permissionDenied = false
-            locationServicesDisabled = false
-            locationManager.requestLocation()
-        @unknown default:
-            self.errorMessage = "حالة صلاحية الموقع غير معروفة!"
-            self.isLoading = false
-        }
+        prepareForRequest(isContinuous: false)
+        validateAuthorization()
     }
-    
-    // MARK: - تتبع الموقع بشكل مستمر (مثلاً إذا بدك ملاحة أو متابعة live)
+
     func startContinuousUpdates() {
-        isLoading = true
-        updatingContinuously = true
-        errorMessage = nil
-        if !CLLocationManager.locationServicesEnabled() {
-            self.locationServicesDisabled = true
-            self.isLoading = false
-            self.errorMessage = "خدمات الموقع غير مفعلة."
-            return
-        }
-        switch locationManager.authorizationStatus {
-        case .notDetermined:
-            locationManager.requestWhenInUseAuthorization()
-        case .restricted, .denied:
-            self.permissionDenied = true
-            self.isLoading = false
-            self.errorMessage = "لم يتم السماح بالوصول للموقع. فعّل الصلاحيات من الإعدادات."
-        case .authorizedWhenInUse, .authorizedAlways:
-            permissionDenied = false
-            locationServicesDisabled = false
-            locationManager.startUpdatingLocation()
-        @unknown default:
-            self.errorMessage = "حالة صلاحية الموقع غير معروفة!"
-            self.isLoading = false
-        }
+        prepareForRequest(isContinuous: true)
+        validateAuthorization()
     }
-    
+
     func stopContinuousUpdates() {
         updatingContinuously = false
         locationManager.stopUpdatingLocation()
-        isLoading = false
+        state = .idle
     }
-    
-    // MARK: - جلب العنوان من اللوكيشن
+
+    // MARK: - Internal State Management
+    private func prepareForRequest(isContinuous: Bool) {
+        state = .loading
+        updatingContinuously = isContinuous
+        if !CLLocationManager.locationServicesEnabled() {
+            locationServicesDisabled = true
+            state = .failure(error: "خدمات الموقع غير مفعلة.")
+        }
+    }
+
+    private func validateAuthorization() {
+        switch locationManager.authorizationStatus {
+        case .notDetermined:
+            locationManager.requestWhenInUseAuthorization()
+        case .restricted, .denied:
+            permissionDenied = true
+            state = .failure(error: "لم يتم السماح بالوصول للموقع. فعّل الصلاحيات من الإعدادات.")
+        case .authorizedWhenInUse, .authorizedAlways:
+            permissionDenied = false
+            locationServicesDisabled = false
+            updatingContinuously ? locationManager.startUpdatingLocation() : locationManager.requestLocation()
+        @unknown default:
+            state = .failure(error: "حالة صلاحية الموقع غير معروفة!")
+        }
+    }
+
     private func fetchAddress(for location: CLLocation) {
         geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, error in
             DispatchQueue.main.async {
                 if let error = error {
                     self?.address = ""
-                    self?.errorMessage = "فشل جلب العنوان: \(error.localizedDescription)"
+                    self?.placemark = nil
+                    self?.state = .failure(error: "فشل جلب العنوان: \(error.localizedDescription)")
                     return
                 }
                 if let placemark = placemarks?.first {
+                    self?.placemark = placemark
                     let addressString = [
                         placemark.name,
                         placemark.locality,
@@ -107,8 +99,11 @@ final class LocationManager: NSObject, ObservableObject {
                         placemark.country
                     ].compactMap { $0 }.joined(separator: ", ")
                     self?.address = addressString
+                    self?.state = .success()
                 } else {
                     self?.address = ""
+                    self?.placemark = nil
+                    self?.state = .success()
                 }
             }
         }
@@ -117,29 +112,33 @@ final class LocationManager: NSObject, ObservableObject {
 
 // MARK: - CLLocationManagerDelegate
 extension LocationManager: CLLocationManagerDelegate {
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        // التعامل مع الصلاحيات الجديدة
-        if updatingContinuously {
-            startContinuousUpdates()
-        } else {
-            requestLocationOnce()
+
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        Task { @MainActor in
+            self.updatingContinuously ? self.startContinuousUpdates() : self.requestLocationOnce()
         }
     }
-    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
         locationManagerDidChangeAuthorization(manager)
     }
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        isLoading = false
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let loc = locations.last else { return }
-        self.location = loc
-        self.latitude = loc.coordinate.latitude
-        self.longitude = loc.coordinate.longitude
-        self.userCoordinate = loc.coordinate
-        self.fetchAddress(for: loc)
-        // إذا بوضع "مرة واحدة"، لا داعي لأي شيء إضافي، وإذا بوضع تتبع، سيستمر بالتحديث.
+        Task { @MainActor in
+            self.state = .loading
+            self.location = loc
+            self.latitude = loc.coordinate.latitude
+            self.longitude = loc.coordinate.longitude
+            self.userCoordinate = loc.coordinate
+            self.onLocationUpdate?(loc)
+            self.fetchAddress(for: loc)
+        }
     }
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        errorMessage = "فشل تحديث الموقع: \(error.localizedDescription)"
-        isLoading = false
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        Task { @MainActor in
+            self.state = .failure(error: "فشل تحديث الموقع: \(error.localizedDescription)")
+        }
     }
 }

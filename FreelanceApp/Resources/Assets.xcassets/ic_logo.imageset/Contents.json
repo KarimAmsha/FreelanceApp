@@ -1,8 +1,19 @@
 {
   "images" : [
     {
-      "filename" : "ic_logo.pdf",
-      "idiom" : "universal"
+      "filename" : "20250724_0945_شعار منصة العمل_remix_01k0xjsnekex9sj35rxs28thm6.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "20250724_0945_شعار منصة العمل_remix_01k0xjsnekex9sj35rxs28thm6@2x.png",
+      "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "20250724_0945_شعار منصة العمل_remix_01k0xjsnekex9sj35rxs28thm6@3x.png",
+      "idiom" : "universal",
+      "scale" : "3x"
     }
   ],
   "info" : {

@@ -9,23 +9,21 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject var appRouter: AppRouter
-    @StateObject private var initialViewModel = InitialViewModel(errorHandling: ErrorHandling())
-    @StateObject private var authViewModel = AuthViewModel(errorHandling: ErrorHandling())
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var userSettings: UserSettings
+    @StateObject private var initialViewModel = InitialViewModel()
+    @StateObject private var authViewModel = AuthViewModel()
 
     var body: some View {
         GeometryReader { geometry in
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 20) {
-                    // Profile Card
                     ProfileCardView(
                         name: userSettings.user?.full_name ?? "اسم المستخدم",
                         phone: userSettings.user?.phone_number ?? "55 ### ####",
                         imageUrl: userSettings.user?.image
                     )
 
-                    // Settings List
                     VStack(spacing: 0) {
                         settingsRow(title: "أرباحي", icon: .system(name: "bag")) {
                             appRouter.navigate(to: .earningsView)
@@ -54,10 +52,13 @@ struct ProfileView: View {
                                 appRouter.navigate(to: .constant(item))
                             }
                         }
+
                         Divider()
+
                         settingsRow(title: "تسجيل الخروج", icon: .system(name: "rectangle.portrait.and.arrow.right")) {
                             logout()
                         }
+
                         settingsRow(title: "حذف الحساب", icon: .system(name: "trash")) {
                             deleteAccount()
                         }
@@ -92,11 +93,12 @@ struct ProfileView: View {
             }
         }
         .onAppear {
-            getConstants()
+            initialViewModel.fetchConstantsItems()
         }
+        .bindLoadingState(initialViewModel.state, to: appRouter)
+        .bindLoadingState(authViewModel.state, to: appRouter)
     }
 
-    // MARK: - Unified settingsRow for all
     @ViewBuilder
     func settingsRow(title: String, icon: RowIcon, action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -115,7 +117,6 @@ struct ProfileView: View {
             .background(Color.white)
             .contentShape(Rectangle())
         }
-//        .buttonStyle(PlainButtonStyle())
     }
 
     @ViewBuilder
@@ -131,68 +132,52 @@ struct ProfileView: View {
                 .aspectRatio(contentMode: .fit)
         }
     }
+
+    private func logout() {
+        appRouter.showAlert(
+            title: "هل تريد تسجيل الخروج؟",
+            message: "سيتم تسجيل خروجك من التطبيق.",
+            okTitle: "تسجيل الخروج",
+            cancelTitle: "رجوع",
+            onOK: {
+                authViewModel.logoutUser {
+                    appRouter.show(.success, message: "تم تسجيل الخروج بنجاح")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        appState.currentTab = .home
+                    }
+                }
+            },
+            onCancel: {
+                print("تم إلغاء تسجيل الخروج")
+            }
+        )
+    }
+
+    private func deleteAccount() {
+        appRouter.showAlert(
+            title: "حذف الحساب نهائيًا",
+            message: "هل أنت متأكد أنك تريد حذف حسابك؟ سيتم فقد جميع بياناتك ولن تستطيع استرجاعها!",
+            okTitle: "نعم، احذف الحساب",
+            cancelTitle: "تراجع",
+            onOK: {
+                authViewModel.deleteAccount {
+                    appRouter.show(.success, message: "تم حذف الحساب بنجاح")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        appState.currentTab = .home
+                    }
+                }
+            },
+            onCancel: {
+                print("تم إلغاء حذف الحساب")
+            }
+        )
+    }
 }
 
 // MARK: - RowIcon Helper
 enum RowIcon {
     case system(name: String)
     case asset(name: String)
-}
-
-#Preview {
-    ProfileView()
-        .environmentObject(AppRouter())
-        .environmentObject(UserSettings())
-}
-
-// MARK: - Logic Functions
-extension ProfileView {
-    private func getConstants() {
-        initialViewModel.fetchConstantsItems()
-    }
-
-    private func logout() {
-        let alertModel = AlertModel(icon: "",
-                                    title: LocalizedStringKey.logout,
-                                    message: LocalizedStringKey.logoutMessage,
-                                    hasItem: false,
-                                    item: nil,
-                                    okTitle: LocalizedStringKey.logout,
-                                    cancelTitle: LocalizedStringKey.back,
-                                    hidesIcon: true,
-                                    hidesCancel: true) {
-            authViewModel.logoutUser {
-                appState.currentPage = .home
-            }
-            appRouter.dismissPopup()
-        } onCancelAction: {
-            appRouter.dismissPopup()
-        }
-        appRouter.togglePopup(.alert(alertModel))
-    }
-
-    private func deleteAccount() {
-        let alertModel = AlertModel(
-            icon: "trash",
-            isSystemImage: true,
-            title: "حذف الحساب نهائيًا",
-            message: "هل أنت متأكد أنك تريد حذف حسابك؟ سيتم فقد جميع بياناتك ولن تستطيع استرجاعها!",
-            hasItem: false,
-            item: nil,
-            okTitle: "نعم، احذف الحساب",
-            cancelTitle: "تراجع",
-            hidesIcon: false,
-            hidesCancel: false
-        ) {
-            authViewModel.deleteAccount {
-                appState.currentPage = .home
-            }
-            appRouter.dismissPopup()
-        } onCancelAction: {
-            appRouter.dismissPopup()
-        }
-        appRouter.togglePopup(.alert(alertModel))
-    }
 }
 
 // MARK: - ProfileCardView
@@ -228,6 +213,7 @@ struct ProfileCardView: View {
                             .clipShape(Circle())
                             .overlay(Circle().stroke(Color.white, lineWidth: 2))
                     }
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text(name)
                             .customFont(weight: .bold, size: 20)
@@ -238,10 +224,12 @@ struct ProfileCardView: View {
                     }
                 }
                 .padding(.leading, 16)
+
                 Spacer()
-                Button(action: {
+
+                Button {
                     appRouter.navigate(to: .editProfile)
-                }) {
+                } label: {
                     Image(systemName: "pencil")
                         .customFont(weight: .medium, size: 22)
                         .foregroundColor(.white)
@@ -255,4 +243,11 @@ struct ProfileCardView: View {
         .frame(height: 100)
         .padding(.horizontal, 8)
     }
+}
+
+#Preview {
+    ProfileView()
+        .environmentObject(AppRouter())
+        .environmentObject(UserSettings())
+        .environmentObject(AppState())
 }

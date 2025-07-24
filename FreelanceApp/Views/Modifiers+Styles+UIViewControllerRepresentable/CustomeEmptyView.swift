@@ -24,7 +24,7 @@ struct CustomeEmptyView: View {
 
                 Button {
                     settings.logout()
-                    appState.currentPage = .home
+                    appState.currentTab = .home
                 } label: {
                     HStack {
                         Text(LocalizedStringKey.goToLogin)

@@ -1,9 +1,8 @@
 import SwiftUI
 import FirebaseMessaging
 
-// Enum steps for registration
-enum RegistrationStep: Int, CaseIterable {
-    case role, personalInfo, confirmPhone, workInfo, identity
+enum RegistrationStep: Int {
+    case role, personalInfo, workInfo, identity
 }
 
 struct RegistrationFlowView: View {
@@ -12,57 +11,66 @@ struct RegistrationFlowView: View {
     @State private var showPrivacySheet = false
     @State private var showSuccessPopup = false
     @State private var agreedToPrivacy = false
-    
+
     @EnvironmentObject var appState: AppState
-    @StateObject private var regViewModel = RegistrationViewModel(errorHandling: ErrorHandling())
+    @EnvironmentObject var regViewModel: RegistrationViewModel
     @StateObject var mediaVM = MediaPickerViewModel()
-    
-    // الخطوات بناءً على الدور
+    @EnvironmentObject var appRouter: AppRouter
+
     var steps: [RegistrationStep] {
-        if regViewModel.selectedRole == .personal {
-            return [.role, .personalInfo, .confirmPhone]
-        } else {
-            return [.role, .personalInfo, .confirmPhone, .workInfo, .identity]
+        guard let role = regViewModel.selectedRole else {
+            return [.role] // default initial step
+        }
+
+        switch role {
+        case .personal:
+            return [.role, .personalInfo, .workInfo, .identity]
+        case .company:
+            return [.role, .personalInfo, .identity]
+        case .none:
+            return [.role]
         }
     }
-    
+
+    @ViewBuilder
+    var currentStepView: some View {
+        switch step {
+        case .role:
+            if regViewModel.isCompleteProfile {
+                CompletedProfileView(selectedRole: regViewModel.selectedRole)
+            } else {
+                RegistrationRoleView(selectedRole: $regViewModel.selectedRole)
+            }
+        case .personalInfo:
+            RegistrationPersonalInfoView(viewModel: regViewModel)
+        case .workInfo:
+            RegistrationWorkInfoView(viewModel: regViewModel, showSpecialtyPopup: $showSpecialtyPopup)
+        case .identity:
+            RegistrationIdentityView(mediaVM: mediaVM, viewModel: regViewModel)
+        }
+    }
+
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                StepTabsView(currentStep: step, steps: steps)
-                    .padding(.top)
-                
-                Spacer(minLength: 10)
-                
-                ZStack {
-                    switch step {
-                    case .role:
-                        RegistrationRoleView(selectedRole: $regViewModel.selectedRole)
-                    case .personalInfo:
-                        RegistrationPersonalInfoView(viewModel: regViewModel)
-                    case .workInfo:
-                        RegistrationWorkInfoView(viewModel: regViewModel, showSpecialtyPopup: $showSpecialtyPopup)
-                    case .identity:
-                        RegistrationIdentityView(mediaVM: mediaVM, viewModel: regViewModel)
-                    case .confirmPhone:
-                        ConfirmPhoneView(regViewModel: regViewModel, onComplete: {
-                            showSuccessPopup = true
-                        })
-                    }
+                if steps.count > 1 {
+                    StepTabsView(currentStep: step, steps: steps)
+                        .padding(.top)
                 }
-                .animation(.easeInOut, value: step)
-                .transition(.slide)
-                
+
                 Spacer(minLength: 10)
-                
-                // الأزرار في الأسفل
+
+                currentStepView
+
+                Spacer(minLength: 10)
+
                 HStack(spacing: 12) {
                     if step != .role {
                         SecondaryActionButton(title: "رجوع") {
                             goToPrevious()
                         }
                     }
-                    PrimaryActionButton(title: getButtonTitle()) {
+                    PrimaryActionButton(title: getButtonTitle(), isLoading: regViewModel.isLoading) {
                         handleButtonAction()
                     }
                 }
@@ -71,25 +79,15 @@ struct RegistrationFlowView: View {
             .padding(.horizontal)
             .background(Color.background())
             .environment(\.layoutDirection, .rightToLeft)
-            .overlay(
-                MessageAlertObserverView(
-                    message: $regViewModel.errorMessage,
-                    alertType: .constant(.error)
-                )
-            )
-            // نافذة النجاح
-            .popup(isPresented: $showSuccessPopup) {
+
+            if showSuccessPopup {
                 SuccessSubmissionView(isPresented: $showSuccessPopup)
                     .environmentObject(appState)
-            } customize: {
-                $0
-                    .type(.default)
-                    .position(.bottom)
-                    .closeOnTapOutside(false)
-                    .backgroundColor(Color.black.opacity(0.4))
-                    .useKeyboardSafeArea(true)
+                    .transition(.move(edge: .bottom))
+                    .zIndex(1)
             }
         }
+        .bindLoadingState(regViewModel.state, to: appRouter)
         .sheet(isPresented: $showPrivacySheet) {
             PrivacyPolicyAgreementView(showSheet: $showPrivacySheet) {
                 agreedToPrivacy = true
@@ -97,174 +95,90 @@ struct RegistrationFlowView: View {
             }
         }
         .onAppear {
-            Messaging.messaging().token { token, error in
-                if let token = token {
-                    regViewModel.fcmToken = token
-                }
-            }
+            regViewModel.restoreIfNeeded(using: appRouter)
         }
     }
-    
-    // --- فالديشن & انتقال للخطوة التالية ---
-    private func goToNext() {
-        regViewModel.errorMessage = nil
-        
-        switch step {
-        case .personalInfo:
-            if regViewModel.full_name.trimmingCharacters(in: .whitespaces).isEmpty ||
-                regViewModel.phone_number.trimmingCharacters(in: .whitespaces).isEmpty {
-                regViewModel.errorMessage = "يرجى تعبئة جميع الحقول المطلوبة"
-                return
-            }
-            // هنا أضف signup بدل الانتقال المباشر
-            regViewModel.signup { result in
-                switch result {
-                case .success:
-                    // انتقل للخطوة التالية (عادة confirmPhone)
-                    if let currentIndex = steps.firstIndex(of: step),
-                       currentIndex + 1 < steps.count {
-                        step = steps[currentIndex + 1]
-                    }
-                case .failure(let error):
-                    regViewModel.errorMessage = error.localizedDescription
-                }
-            }
-        case .workInfo:
-            if regViewModel.mainCategoryId == nil {
-                regViewModel.errorMessage = "يرجى اختيار التخصص"
-                return
-            }
-            fallthrough
-        case .identity:
-            if step == .identity && (regViewModel.imageURL == nil || regViewModel.idImageURL == nil) {
-                regViewModel.errorMessage = "يرجى رفع صورة شخصية وصورة هوية"
-                return
-            }
-            fallthrough
-        default:
-            // انتقل للخطوة التالية إذا لم يكن هناك خطأ
-            if let currentIndex = steps.firstIndex(of: step),
-               currentIndex + 1 < steps.count {
-                step = steps[currentIndex + 1]
-            }
-        }
-    }
-    
-    private func goToPrevious() {
-        regViewModel.errorMessage = nil
-        if let currentIndex = steps.firstIndex(of: step),
-           currentIndex > 0 {
-            step = steps[currentIndex - 1]
-        }
-    }
-    
+
     private func getButtonTitle() -> String {
-        if step == .confirmPhone {
-            return regViewModel.isPhoneVerified ? "التالي" : "تحقق من رقم الهاتف"
-        } else if step == steps.last {
+        if step == steps.last {
             return "إتمام الطلب"
         } else {
             return "التالي"
         }
     }
-    
+
     private func handleButtonAction() {
-        // 1- إذا الخطوة الحالية هي confirmPhone والأخيرة بنفس الوقت
-        if step == .confirmPhone && step == steps.last {
-            // تحقق من كود التفعيل
-            guard regViewModel.otp.trimmingCharacters(in: .whitespacesAndNewlines).count >= 4 else {
-                regViewModel.errorMessage = "يرجى إدخال رمز التفعيل الصحيح"
-                return
-            }
-            if !regViewModel.isPhoneVerified {
-                regViewModel.verifyPhone(verifyCode: regViewModel.otp) { result in
-                    switch result {
-                    case .success:
-                        regViewModel.isPhoneVerified = true
-                        // بعد نجاح التحقق مباشرة نكمل التسجيل (إرسال الملف الشخصي)
-                        if agreedToPrivacy {
-                            regViewModel.updateProfile { result in
-                                switch result {
-                                case .success:
-                                    showSuccessPopup = true
-                                case .failure(let error):
-                                    regViewModel.errorMessage = error.localizedDescription
-                                }
-                            }
-                        } else {
-                            showPrivacySheet = true
-                        }
-                    case .failure(let error):
-                        if let apiError = error as? APIClient.APIError {
-                            regViewModel.errorMessage = apiError.localizedDescription
-                        } else {
-                            regViewModel.errorMessage = error.localizedDescription
-                        }
-                    }
-                }
-            } else {
-                // إذا كان الرقم متحقق منه مسبقًا، مباشرة نكمل نفس البلوك
-                if agreedToPrivacy {
-                    regViewModel.updateProfile { result in
-                        switch result {
-                        case .success:
-                            showSuccessPopup = true
-                        case .failure(let error):
-                            regViewModel.errorMessage = error.localizedDescription
-                        }
-                    }
-                } else {
-                    showPrivacySheet = true
-                }
-            }
-        }
-        // 2- إذا الخطوة الأخيرة ليست confirmPhone
-        else if step == steps.last {
-            if agreedToPrivacy {
-                regViewModel.updateProfile { result in
-                    switch result {
-                    case .success:
-                        showSuccessPopup = true
-                    case .failure(let error):
-                        regViewModel.errorMessage = error.localizedDescription
-                    }
-                }
-            } else {
-                showPrivacySheet = true
-            }
-        }
-        // 3- إذا الخطوة confirmPhone (وليست الأخيرة)
-        else if step == .confirmPhone {
-            guard regViewModel.otp.trimmingCharacters(in: .whitespacesAndNewlines).count >= 4 else {
-                regViewModel.errorMessage = "يرجى إدخال رمز التفعيل الصحيح"
-                return
-            }
-            if !regViewModel.isPhoneVerified {
-                regViewModel.verifyPhone(verifyCode: regViewModel.otp) { result in
-                    switch result {
-                    case .success:
-                        regViewModel.isPhoneVerified = true
-                        goToNext()
-                    case .failure(let error):
-                        if let apiError = error as? APIClient.APIError {
-                            regViewModel.errorMessage = apiError.localizedDescription
-                        } else {
-                            regViewModel.errorMessage = error.localizedDescription
-                        }
-                    }
-                }
-            } else {
+        regViewModel.resetState()
+
+        switch step {
+        case .role:
+            if regViewModel.selectedRole != nil {
                 goToNext()
+            } else {
+                regViewModel.state = .failure(error: "يرجى اختيار نوع الحساب")
+            }
+
+        case .personalInfo:
+            if let error = regViewModel.getMissingProfileField(skipImageValidation: true, skipCategory: true) {
+                regViewModel.failLoading(error: error)
+                return
+            }
+            goToNext()
+
+        case .workInfo:
+            if let error = regViewModel.getMissingProfileField(skipImageValidation: true) {
+                regViewModel.failLoading(error: error)
+                return
+            }
+            goToNext()
+
+        case .identity:
+            if let error = regViewModel.getMissingProfileField() {
+                regViewModel.failLoading(error: error)
+                return
+            }
+            regViewModel.updateProfile {
+                if regViewModel.isCompleteProfile {
+                    appState.currentTab = .home
+                } else {
+                    goToNext()
+                }
             }
         }
-        // 4- أي خطوة أخرى
-        else {
-            goToNext()
+    }
+
+    private func goToNext() {
+        if let idx = steps.firstIndex(of: step), idx + 1 < steps.count {
+            step = steps[idx + 1]
+        }
+    }
+
+    private func goToPrevious() {
+        if let idx = steps.firstIndex(of: step), idx > 0 {
+            step = steps[idx - 1]
         }
     }
 }
 
-// --- شريط الخطوات ---
+struct CompletedProfileView: View {
+    let selectedRole: UserRole?
+    var body: some View {
+        VStack(spacing: 32) {
+            Image(systemName: selectedRole == .company ? "person.2.fill" : "person.fill")
+                .font(.system(size: 48))
+                .foregroundColor(.primary())
+            Text(selectedRole == .company ? "نوع حسابك: مقدم خدمة" : "نوع حسابك: صاحب مشاريع")
+                .customFont(weight: .bold, size: 18)
+                .foregroundColor(.primary())
+            Text("لا يمكن تغيير نوع الحساب بعد إكمال التسجيل.")
+                .customFont(weight: .regular, size: 13)
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white)
+    }
+}
+
 struct StepTabsView: View {
     var currentStep: RegistrationStep
     var steps: [RegistrationStep]
@@ -293,4 +207,3 @@ struct StepTabsView: View {
 #Preview {
     RegistrationFlowView()
 }
-

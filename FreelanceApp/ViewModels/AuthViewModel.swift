@@ -1,251 +1,150 @@
-//
-//  AuthViewModel.swift
-//  Wishy
-//
-//  Created by Karim Amsha on 27.04.2024.
-//
-
 import Foundation
 import SwiftUI
 import Combine
 import Alamofire
 
-class AuthViewModel: ObservableObject {
+@MainActor
+class AuthViewModel: ObservableObject, GenericAPILoadable {
+    // MARK: - Published
+    @Published var state: LoadingState = .idle
+    var appRouter: AppRouter?
     @Published var user: User?
+    @Published var mobile: String = ""
     @Published var loggedIn: Bool = false
-    @Published var isLoading: Bool = false
-    @Published var errorTitle: String = LocalizedStringKey.error
-    @Published var errorMessage: String?
     @Published var showErrorPopup: Bool = false
-    private var cancellables = Set<AnyCancellable>()
-    private let errorHandling: ErrorHandling
-    @Published var userSettings = UserSettings.shared
 
-    init(errorHandling: ErrorHandling) {
-        self.errorHandling = errorHandling
-    }
+    // MARK: - Computed
+    var isLoading: Bool { state.isLoading }
+    var isSuccess: Bool { state.isSuccess }
+    var isFailure: Bool { state.isFailure }
+    var errorMessage: String? { state.message }
 
-    func registerUser(params: [String: Any], onsuccess: @escaping (String, String) -> Void) {
-        isLoading = true
-        errorMessage = nil
-        let endpoint = DataProvider.Endpoint.register(params: params)
-        
-        DataProvider.shared.request(endpoint: endpoint, responseType: SingleAPIResponse<User>.self)
-            .sink(receiveCompletion: { completion in
-                switch completion {
-                case .finished:
-                    break
-                case .failure(let error):
-                    // Use the centralized error handling component
-                    self.handleAPIError(error)
-                }
-            }, receiveValue: { [weak self] (response: SingleAPIResponse<User>) in
-                if response.status {
-                    self?.user = response.items
-                    self?.handleVerificationStatus(isVerified: response.items?.isVerify ?? false)
-                    self?.errorMessage = nil
-                    if let userId = response.items?.id, let token = response.items?.token {
-                        onsuccess(userId, token)
-                    } else {
-                        onsuccess("", "")
-                    }
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-                self?.isLoading = false
-            })
-            .store(in: &cancellables)
-    }
+    private let settings = UserSettings.shared
+    private var token: String? { settings.token }
 
-    func verify(params: [String: Any], onsuccess: @escaping (Bool, String) -> Void) {
-        isLoading = true
-        errorMessage = nil
-        let endpoint = DataProvider.Endpoint.verify(params: params)
-        
-        DataProvider.shared.request(endpoint: endpoint, responseType: SingleAPIResponse<User>.self)
-            .sink(receiveCompletion: { completion in
-                switch completion {
-                case .finished:
-                    break
-                case .failure(let error):
-                    // Use the centralized error handling component
-                    self.handleAPIError(error)
-                }
-            }, receiveValue: { [weak self] (response: SingleAPIResponse<User>) in
-                if response.status {
-                    self?.user = response.items
-                    self?.errorMessage = nil
-                    let profileCompleted = !(self?.user?.full_name?.isEmpty ?? false)
-                    if profileCompleted {
-                        self?.handleVerificationStatus(isVerified: response.items?.isVerify ?? false)
-                    } else {
-                        self?.userSettings.token = self?.user?.token ?? ""
-                        onsuccess(profileCompleted, self?.user?.token ?? "")
-                    }
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-                self?.isLoading = false
-            })
-            .store(in: &cancellables)
-    }
-    
-    func resend(params: [String: Any], onsuccess: @escaping () -> Void) {
-        isLoading = true
-        errorMessage = nil
-        let endpoint = DataProvider.Endpoint.resend(params: params)
-        
-        DataProvider.shared.request(endpoint: endpoint, responseType: SingleAPIResponse<User>.self)
-            .sink(receiveCompletion: { completion in
-                switch completion {
-                case .finished:
-                    break
-                case .failure(let error):
-                    // Use the centralized error handling component
-                    self.handleAPIError(error)
-                }
-            }, receiveValue: { [weak self] (response: SingleAPIResponse<User>) in
-                if response.status {
-                    self?.user = response.items
-                    self?.handleVerificationStatus(isVerified: response.items?.isVerify ?? false)
-                    self?.errorMessage = nil
-                    onsuccess()
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-                self?.isLoading = false
-            })
-            .store(in: &cancellables)
-    }
-
-    func logoutUser(onsuccess: @escaping () -> Void) {
-//        guard let token = userSettings.token else {
-//            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-//            return
-//        }
-
-        isLoading = true
-        errorMessage = nil
-        let endpoint = DataProvider.Endpoint.logout(userID: userSettings.id ?? "")
-        
-        DataProvider.shared.request(endpoint: endpoint, responseType: SingleAPIResponse<User>.self)
-            .sink(receiveCompletion: { completion in
-                switch completion {
-                case .finished:
-                    break
-                case .failure(let error):
-                    // Use the centralized error handling component
-                    self.handleAPIError(error)
-                }
-            }, receiveValue: { [weak self] (response: SingleAPIResponse<User>) in
-                if response.status {
-                    self?.user = response.items
-                    self?.userSettings.logout()
-                    self?.errorMessage = nil
-                    onsuccess()
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-                self?.isLoading = false
-            })
-            .store(in: &cancellables)
-    }
-
-    func deleteAccount(onsuccess: @escaping () -> Void) {
-        guard let token = userSettings.token else {
-            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-            return
+    private func tokenGuard() -> Bool {
+        guard token != nil else {
+            failLoading(error: "Token غير متوفر")
+            return false
         }
-
-        isLoading = true
-        errorMessage = nil
-        let endpoint = DataProvider.Endpoint.deleteAccount(id: userSettings.id ?? "", token: token)
-        
-        DataProvider.shared.request(endpoint: endpoint, responseType: SingleAPIResponse<User>.self)
-            .sink(receiveCompletion: { completion in
-                switch completion {
-                case .finished:
-                    break
-                case .failure(let error):
-                    // Use the centralized error handling component
-                    self.handleAPIError(error)
-                }
-            }, receiveValue: { [weak self] (response: SingleAPIResponse<User>) in
-                if response.status {
-                    self?.user = response.items
-                    self?.userSettings.logout()
-                    self?.errorMessage = nil
-                    onsuccess()
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-                self?.isLoading = false
-            })
-            .store(in: &cancellables)
+        return true
     }
 
+    // MARK: - Register
+    func registerUser(body: SignupRequest, onsuccess: @escaping (String, String) -> Void) {
+        guard shouldStartLoading() else { return }
+        startLoading()
+
+        fetchAPI(endpoint: .register(body: body), responseType: SingleAPIResponse<User>.self) { [weak self] response in
+            guard let self = self else { return }
+            guard let user = response.items else {
+                self.failLoading(error: "فشل في إنشاء الحساب")
+                return
+            }
+            self.user = user
+            self.handleVerificationStatus(isVerified: user.isVerify ?? false)
+            self.finishLoading()
+            onsuccess(user.id ?? "", user.token ?? "")
+        }
+    }
+
+    // MARK: - Verify
+    func verify(body: VerifyRequest, onsuccess: @escaping (Bool, String) -> Void, onError: @escaping (String) -> Void) {
+        guard shouldStartLoading() else { return }
+        startLoading()
+
+        fetchAPI(endpoint: .verify(body: body), responseType: SingleAPIResponse<User>.self) { [weak self] response in
+            guard let self = self else { return }
+            guard let user = response.items else {
+                self.failLoading(error: "فشل في التحقق من الرقم")
+                onError("فشل في قراءة البيانات")
+                return
+            }
+            self.user = user
+            self.settings.token = user.token
+            self.finishLoading()
+            onsuccess(user.isCompleteProfile ?? false, user.token ?? "")
+        }
+    }
+
+    func resend(body: ResendRequest, onsuccess: @escaping () -> Void, onError: @escaping (String) -> Void) {
+        guard shouldStartLoading() else { return }
+        startLoading()
+
+        fetchAPI(endpoint: .resend(body: body), responseType: SingleAPIResponse<User>.self) { [weak self] response in
+            guard let self = self else { return }
+            guard let user = response.items else {
+                self.failLoading(error: "فشل في إعادة إرسال الرمز")
+                onError("فشل في إعادة إرسال الرمز")
+                return
+            }
+            self.user = user
+            self.handleVerificationStatus(isVerified: user.isVerify ?? false)
+            self.finishLoading()
+            onsuccess()
+        }
+    }
+
+    // MARK: - Logout
+    func logoutUser(onsuccess: @escaping () -> Void) {
+        guard tokenGuard() else { return }
+        guard shouldStartLoading() else { return }
+        startLoading()
+
+        fetchAPI(endpoint: .logout(userID: settings.id ?? "", token: token!), responseType: SingleAPIResponse<User>.self) { [weak self] response in
+            self?.user = response.items
+            self?.settings.logout()
+            self?.finishLoading()
+            onsuccess()
+        }
+    }
+
+    // MARK: - Delete Account
+    func deleteAccount(onsuccess: @escaping () -> Void) {
+        guard tokenGuard() else { return }
+        guard shouldStartLoading() else { return }
+        startLoading()
+
+        fetchAPI(endpoint: .deleteAccount(id: settings.id ?? "", token: token!), responseType: SingleAPIResponse<User>.self) { [weak self] response in
+            self?.user = response.items
+            self?.settings.logout()
+            self?.finishLoading()
+            onsuccess()
+        }
+    }
+
+    // MARK: - Guest
     func guest(onsuccess: @escaping () -> Void) {
-        isLoading = true
-        errorMessage = nil
-        let endpoint = DataProvider.Endpoint.guest
-        
-        DataProvider.shared.request(endpoint: endpoint, responseType: CustomApiResponse.self)
-            .sink(receiveCompletion: { completion in
-                switch completion {
-                case .finished:
-                    break
-                case .failure(let error):
-                    // Use the centralized error handling component
-                    self.handleAPIError(error)
-                }
-            }, receiveValue: { [weak self] (response: CustomApiResponse) in
-                if let status = response.status, status {
-                    self?.errorMessage = nil
-                    UserSettings.shared.guestLogin(token: response.items ?? "")
-                    onsuccess()
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.messageAr ?? ""))
-                }
-                self?.isLoading = false
-            })
-            .store(in: &cancellables)
+        guard shouldStartLoading() else { return }
+        startLoading()
+
+        fetchAPI(endpoint: .guest, responseType: CustomApiResponse.self) { [weak self] response in
+            if let token = response.items {
+                self?.settings.guestLogin(token: token)
+                self?.finishLoading()
+                onsuccess()
+            } else {
+                self?.failLoading(error: "فشل تسجيل الدخول كزائر")
+            }
+        }
     }
 
-    func logout() {
-        // Perform the logout operation
-//        userSettings.id = 0
-//        userSettings.access_token = ""
-        // ... Reset other user-related properties ...
-
-//        updateLoginStatus()
+    // MARK: - Helpers
+    func handleVerificationStatus(isVerified: Bool) {
+        if isVerified, let user = self.user {
+            settings.login(user: user, id: user.id ?? "", token: user.token ?? "")
+        }
     }
 
-    // Other authentication-related functions
-
-    // You can include user profile management functions here as well.
+    func reset() {
+        state = .idle
+        mobile = ""
+        loggedIn = false
+        user = nil
+        showErrorPopup = false
+    }
 }
 
-extension AuthViewModel {
-    func handleAPIError(_ error: APIClient.APIError) {
-        let errorDescription = errorHandling.handleAPIError(error)
-        errorMessage = errorDescription
-    }
-    
-    func handleVerificationStatus(isVerified: Bool) {
-        if isVerified {
-            // User is verified
-            if let user = self.user {
-                UserSettings.shared.login(user: user, id: user.id ?? "", token: user.token ?? "")
-            }
-        } else {
-            // User is not verified
-            errorMessage = nil
-        }
-    }
+struct ResendRequest: Encodable {
+    let phone_number: String
 }

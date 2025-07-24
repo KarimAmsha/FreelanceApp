@@ -1,48 +1,52 @@
-//
-//  ConfirmPhoneView.swift
-//  FreelanceApp
-//
-//  Created by Karim OTHMAN on 6.05.2025.
-//
-
 import SwiftUI
 
 struct ConfirmPhoneView: View {
     @ObservedObject var regViewModel: RegistrationViewModel
-    @FocusState private var focusedField: Int?
-    @State private var totalSeconds = 59
+    @State private var totalSeconds: Int = 59
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-    var minutes: Int { totalSeconds / 60 }
-    var seconds: Int { totalSeconds % 60 }
-    @StateObject private var viewModel = AuthViewModel(errorHandling: ErrorHandling())
-    @EnvironmentObject var appState: AppState
-    @EnvironmentObject var settings: UserSettings
+    @State private var isResending: Bool = false
+    @State private var errorMessage: String? = nil
+
     var onComplete: (() -> Void)? = nil
 
+    @EnvironmentObject var appState: AppState
+
+    var formattedTime: String {
+        String(format: "0:%02d", totalSeconds % 60)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 28) {
             RegistrationStepHeader(
-                title: "تأكيد رقم الهاتف",
-                subtitle: "قم بإدخال رمز التفعيل المرسل الى رقم هاتفك"
+                title: "تأكيد رقم الجوال",
+                subtitle: "أدخل رمز التفعيل المرسل إلى رقمك."
             )
 
             Text(regViewModel.getCompletePhoneNumber())
-                .font(.headline)
+                .customFont(weight: .bold, size: 17)
+                .foregroundColor(.primary())
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             OtpFormFieldView(combinedPins: $regViewModel.otp)
                 .frame(maxWidth: .infinity, alignment: .center)
-                .disabled(viewModel.isLoading)
-                .environment(\.layoutDirection, .leftToRight)
+                .disabled(isResending)
+                .environment(\..layoutDirection, .leftToRight)
 
-            HStack(spacing: 100) {
-                Text("0:\(seconds) - لم تستلم رمزًا؟")
-                    .customFont(weight: .regular, size: 12)
-                    .foregroundColor(.grayA4ACAD())
-
-                Button("طلب رمز جديد") {
-                    resendCode()
+            VStack(spacing: 10) {
+                if totalSeconds > 0 {
+                    Text("لم تستلم رمزًا؟ يمكنك إعادة الطلب بعد \(formattedTime)")
+                        .customFont(weight: .regular, size: 14)
+                        .foregroundColor(.grayA4ACAD())
+                } else {
+                    Button {
+                        resendCode()
+                    } label: {
+                        Text(isResending ? "جاري الإرسال..." : "طلب رمز جديد")
+                            .customFont(weight: .bold, size: 15)
+                            .foregroundColor(.primary())
+                    }
+                    .disabled(isResending)
                 }
-                .buttonStyle(CustomButtonStyle(fontSize: 14, fontWeight: .bold, background: .primaryLight(), foreground: .primaryBlack()))
             }
             .frame(maxWidth: .infinity, alignment: .center)
 
@@ -58,22 +62,28 @@ struct ConfirmPhoneView: View {
             }
         }
         .overlay(
-            MessageAlertObserverView(
-                message: $viewModel.errorMessage,
-                alertType: .constant(.error)
-            )
+            VStack {
+                if let errorMessage = errorMessage {
+                    MessageAlertView(message: errorMessage)
+                }
+            }
         )
-        .environment(\.layoutDirection, .rightToLeft)
+        .environment(\..layoutDirection, .rightToLeft)
     }
-    
+
     private func resendCode() {
-        let params = ["id": appState.userId] as [String : Any]
-        viewModel.resend(params: params) {}
+        guard !isResending else { return }
+        isResending = true
+
+        let userId = UserSettings.shared.id ?? ""
+        regViewModel.resend(id: userId) {
+            totalSeconds = 59
+            isResending = false
+        }
     }
 }
 
 #Preview {
-    ConfirmPhoneView(regViewModel: RegistrationViewModel(errorHandling: ErrorHandling()))
+    ConfirmPhoneView(regViewModel: RegistrationViewModel())
         .environmentObject(AppState())
-        .environmentObject(UserSettings())
 }

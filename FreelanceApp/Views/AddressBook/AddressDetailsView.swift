@@ -11,7 +11,7 @@ import MapKit
 struct AddressDetailsView: View {
     @EnvironmentObject var appRouter: AppRouter
     let addressItem: AddressItem
-    @StateObject var viewModel = UserViewModel(errorHandling: ErrorHandling())
+    @StateObject var viewModel = UserViewModel()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -163,54 +163,24 @@ extension AddressDetailsView {
     }
     
     private func showAlertMessage() {
-        let alertModel = AlertModel(
-            icon: "",
-            title: LocalizedStringKey.deleteMessage,
-            message: "",
-            hasItem: false,
-            item: "",
-            okTitle: LocalizedStringKey.ok,
-            cancelTitle: LocalizedStringKey.back,
-            hidesIcon: true,
-            hidesCancel: false,
-            onOKAction: {
-                appRouter.togglePopup(nil)
-                DispatchQueue.main.asyncAfter(deadline: .now()+0.3, execute: {
-                    deleteAddress()
-                })
+        appRouter.showAlert(
+            title: "هل تريد حذف العنوان؟",
+            message: nil,
+            okTitle: "حذف",
+            cancelTitle: "رجوع",
+            onOK: {
+                deleteAddress()
             },
-            onCancelAction: {
-                withAnimation {
-                    appRouter.togglePopup(nil)
-                }
+            onCancel: {
+                print("تم إلغاء الحذف")
             }
         )
-
-        appRouter.togglePopup(.alert(alertModel))
     }
-    
-    private func showSuccessMessage(message: String) {
-        let alertModel = AlertModel(
-            icon: "",
-            title: "",
-            message: message,
-            hasItem: false,
-            item: "",
-            okTitle: LocalizedStringKey.ok,
-            cancelTitle: LocalizedStringKey.back,
-            hidesIcon: true,
-            hidesCancel: true,
-            onOKAction: {
-                appRouter.togglePopup(nil)
-                appRouter.navigateBack()
-            },
-            onCancelAction: {
-                withAnimation {
-                    appRouter.togglePopup(nil)
-                }
-            }
-        )
 
-        appRouter.togglePopup(.alert(alertModel))
+    private func showSuccessMessage(message: String) {
+        appRouter.show(.success, message: message)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            appRouter.navigateBack()
+        }
     }
 }

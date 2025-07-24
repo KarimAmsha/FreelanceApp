@@ -5,7 +5,6 @@ struct RegistrationWorkInfoView: View {
     @ObservedObject var viewModel: RegistrationViewModel
     @Binding var showSpecialtyPopup: Bool
 
-    // التخصص المختار
     var selectedCategory: Category? {
         viewModel.allCategories.first(where: { $0.id == viewModel.mainCategoryId })
     }
@@ -14,51 +13,34 @@ struct RegistrationWorkInfoView: View {
         VStack(spacing: 28) {
             RegistrationStepHeader(
                 title: "تفاصيل العمل",
-                subtitle: "اختر التخصص الرئيسي المناسب لمهاراتك، يمكنك تغييره لاحقًا من إعدادات الحساب."
+                subtitle: "اختر التخصص الرئيسي المناسب لمهاراتك."
             )
 
             VStack(alignment: .leading, spacing: 16) {
                 Text("تخصصك المختار")
-                    .font(.headline)
-                    .foregroundColor(.primary)
+                    .customFont(weight: .medium, size: 15)
+                    .foregroundColor(.primary())
 
-                // عرض التخصص المختار أو رسالة عدم وجوده
                 if let cat = selectedCategory {
-                    HStack(spacing: 8) {
-                        if let urlStr = cat.image, let url = URL(string: urlStr) {
-                            AsyncImage(url: url) { img in
-                                img.resizable()
-                            } placeholder: {
-                                Color.gray.opacity(0.2)
-                            }
-                            .frame(width: 28, height: 28)
-                            .clipShape(Circle())
-                        }
-                        Text(cat.title ?? "")
-                            .font(.subheadline.bold())
-                            .foregroundColor(.primary)
-                        Button {
-                            // إزالة التخصص المختار
+                    VStack(alignment: .leading, spacing: 8) {
+                        SelectedCategoryView(cat: cat) {
                             withAnimation {
                                 viewModel.mainCategoryId = nil
+                                viewModel.subcategory = nil
                             }
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 18))
-                                .foregroundColor(.red.opacity(0.75))
-                                .padding(.leading, 2)
+                        }
+
+                        if let selectedSub = cat.sub?.first(where: { $0.id == viewModel.subcategory }) {
+                            SelectedSubCategoryView(title: selectedSub.title) {
+                                withAnimation {
+                                    viewModel.subcategory = nil
+                                }
+                            }
                         }
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 9)
-                    .background(Color.yellowF8B22A().opacity(0.13))
-                    .clipShape(Capsule())
-                    .overlay(
-                        Capsule()
-                            .stroke(Color.yellowF8B22A(), lineWidth: 1)
-                    )
                 } else {
                     Text("لم يتم اختيار تخصص بعد")
+                        .customFont(weight: .regular, size: 13)
                         .foregroundColor(.gray)
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -66,26 +48,10 @@ struct RegistrationWorkInfoView: View {
                         .cornerRadius(10)
                 }
 
-                // زر إضافة/تغيير تخصص
-                Button {
+                Button(action: {
                     showSpecialtyPopup = true
-                } label: {
-                    HStack {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundColor(Color.yellowF8B22A())
-                        Text(selectedCategory == nil ? "إضافة تخصص" : "تغيير التخصص")
-                            .foregroundColor(Color.primaryBlack())
-                            .fontWeight(.semibold)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
-                    .background(Color.white)
-                    .cornerRadius(14)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.yellowF8B22A(), lineWidth: 1.5)
-                    )
-                    .shadow(color: Color.yellowF8B22A().opacity(0.04), radius: 2, x: 0, y: 1)
+                }) {
+                    AddCategoryButtonLabel(isSelected: selectedCategory != nil)
                 }
                 .padding(.top, 6)
             }
@@ -104,7 +70,8 @@ struct RegistrationWorkInfoView: View {
             SingleSpecialtyGridSelectionView(
                 isPresented: $showSpecialtyPopup,
                 categories: viewModel.allCategories,
-                selectedCategoryId: $viewModel.mainCategoryId
+                selectedCategoryId: $viewModel.mainCategoryId,
+                selectedSubCategoryId: $viewModel.subcategory
             )
         } customize: {
             $0
@@ -119,9 +86,95 @@ struct RegistrationWorkInfoView: View {
     }
 }
 
+struct SelectedCategoryView: View {
+    let cat: Category
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if let urlStr = cat.image, let url = URL(string: urlStr) {
+                AsyncImage(url: url) { img in
+                    img.resizable()
+                } placeholder: {
+                    Color.gray.opacity(0.2)
+                }
+                .frame(width: 28, height: 28)
+                .clipShape(Circle())
+            }
+            Text(cat.title ?? "")
+                .customFont(weight: .bold, size: 15)
+                .foregroundColor(.primary())
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(.red.opacity(0.75))
+                    .padding(.leading, 2)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(Color.yellowF8B22A().opacity(0.13))
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .stroke(Color.yellowF8B22A(), lineWidth: 1)
+        )
+    }
+}
+
+struct SelectedSubCategoryView: View {
+    let title: String
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "tag.fill")
+                .foregroundColor(.blue)
+
+            Text(title)
+                .customFont(weight: .medium, size: 14)
+                .foregroundColor(.primary)
+
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.red.opacity(0.75))
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(Color.blue.opacity(0.08))
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .stroke(Color.blue, lineWidth: 1)
+        )
+    }
+}
+
+struct AddCategoryButtonLabel: View {
+    var isSelected: Bool
+
+    var body: some View {
+        HStack {
+            Image(systemName: "plus.circle.fill")
+                .foregroundColor(Color.yellowF8B22A())
+            Text(isSelected ? "تغيير التخصص" : "إضافة تخصص")
+                .customFont(weight: .medium, size: 15)
+                .foregroundColor(Color.primaryBlack())
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 13)
+        .background(Color.white)
+        .cornerRadius(14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.yellowF8B22A(), lineWidth: 1.5)
+        )
+    }
+}
+
 #Preview {
-    let vm = RegistrationViewModel(errorHandling: ErrorHandling())
-    // عينة بيانات للتجربة في البرفيو
+    let vm = RegistrationViewModel()
     vm.allCategories = [
         Category(id: "1", title: "مصمم", description: nil, image: nil, sub: []),
         Category(id: "2", title: "مهندس برمجيات", description: nil, image: nil, sub: [])

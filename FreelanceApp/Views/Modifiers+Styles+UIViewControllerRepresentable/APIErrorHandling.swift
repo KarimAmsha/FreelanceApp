@@ -1,122 +1,119 @@
-//
-//  APIErrorHandling.swift
-//  Khawi
-//
-//  Created by Karim Amsha on 6.11.2023.
-//
-
 import Foundation
 import Alamofire
 
-class ErrorHandling {
-    func handleAPIError(_ error: APIClient.APIError) -> String {
+final class ErrorHandling {
+    static let shared = ErrorHandling()
+    private init() {}
+
+    // MARK: - Main Handler
+    func handleAPIError(_ error: Error) -> String {
+        #if DEBUG
+        print("🔴 [ErrorHandling] Error: \(error)")
+        #endif
+
         switch error {
-        case .networkError(let afError):
-            return handleNetworkError(afError)
-        case .badRequest:
-            return LocalizedError.badRequest
-        case .unauthorized:
-            return LocalizedError.unauthorized
-        case .invalidData:
-            return LocalizedError.invalidData
-        case .decodingError(let decodingError):
-            // Handle decoding errors
+        case let apiError as APIClient.APIError:
+            return handleAPIClientError(apiError)
+        case let decodingError as DecodingError:
             return handleDecodingError(decodingError)
-        case .notFound:
-            return LocalizedError.resourceNotFound
-        case .serverError:
-            return LocalizedError.serverError
-        case .invalidToken:
-            return LocalizedError.invalidToken
-        case .customError(message: let message):
-            return message
-        case .requestError(let afError):
-            return handleAlamofireRequestError(afError)
-        case .unknownError:
-            return LocalizedError.unknownError
+        case let afError as AFError:
+            return handleAlamofireError(afError)
+        case let urlError as URLError:
+            return handleURLError(urlError)
+        case let nsError as NSError:
+            return nsError.localizedDescription.isEmpty ? "حدث خطأ غير متوقع!" : "خطأ: \(nsError.localizedDescription)"
+        default:
+            #if DEBUG
+            print("🔴 [ErrorHandling][Default] Unhandled error: \(error)")
+            #endif
+            return "حدث خطأ غير متوقع!"
         }
     }
 
-    func handleNetworkError(_ error: AFError) -> String {
+    // MARK: - APIClient Error
+    private func handleAPIClientError(_ error: APIClient.APIError) -> String {
+        #if DEBUG
+        print("🟠 [ErrorHandling][APIClientError] \(error)")
+        #endif
         switch error {
-        case .sessionTaskFailed(let sessionError as URLError):
-            switch sessionError.code {
-            case .notConnectedToInternet:
-                return LocalizedError.noInternetConnection
-            default:
-                return LocalizedError.unknownError
-            }
-        default:
-            return LocalizedError.unknownError
+        case .networkError(let afError):      return handleAlamofireError(afError)
+        case .badRequest:                     return "هناك خطأ في الطلب. يرجى التأكد من البيانات."
+        case .unauthorized:                   return "الجلسة منتهية. يرجى إعادة تسجيل الدخول."
+        case .invalidData:                    return "البيانات المستلمة غير صالحة."
+        case .decodingError(let err):         return handleDecodingError(err)
+        case .notFound:                       return "العنصر المطلوب غير موجود."
+        case .serverError:                    return "حدث خطأ في الخادم. حاول لاحقًا."
+        case .invalidToken:                   return "رمز الدخول غير صالح أو منتهي."
+        case .customError(let msg):           return msg
+        case .requestError(let afError):      return handleAlamofireError(afError)
+        case .unknownError:                   return "حدث خطأ غير معروف."
+        case .urlError(let urlError):         return handleURLError(urlError)
+        case .thirdPartyError(let error):
+            #if DEBUG
+            print("🔴 [ErrorHandling][ThirdPartyError]: \(error)")
+            #endif
+            return "حدث خطأ من مكتبة خارجية: \((error as NSError).localizedDescription)"
         }
     }
-    
-    private func handleAlamofireRequestError(_ afError: AFError) -> String {
-        // You can handle Alamofire-specific errors here
+
+    // MARK: - Alamofire Error
+    private func handleAlamofireError(_ afError: AFError) -> String {
+        #if DEBUG
+        print("🟣 [ErrorHandling][AFError] \(afError)")
+        #endif
+        if let urlError = afError.underlyingError as? URLError {
+            return handleURLError(urlError)
+        }
         switch afError {
-        case .invalidURL:
-            return LocalizedError.invalidURL
-        case .responseValidationFailed(reason: let reason):
-            return "\(LocalizedError.responseValidationFailed): \(reason)"
-        // Handle other Alamofire-specific errors as needed
-        default:
-            return LocalizedError.unknownError
-        }
-    }
-    
-    // Helper function to handle decoding errors
-    private func handleDecodingError(_ decodingError: DecodingError) -> String {
-        switch decodingError {
-        case .dataCorrupted(let context):
-            return "Data corrupted: \(context)"
-        case .keyNotFound(let key, let context):
-            return "Key '\(key.stringValue)' not found: \(context)"
-        case .typeMismatch(let type, let context):
-            return "Type mismatch, expected \(type): \(context)"
-        case .valueNotFound(let type, let context):
-            return "Value not found, expected \(type): \(context)"
-        default:
-            return "Decoding error: \(decodingError.localizedDescription)"
-        }
-    }
-    
-    func mapAFErrorToAPIError(_ error: AFError) -> APIClient.APIError {
-        switch error {
-        case .invalidURL:
-            return .requestError(error)
-        case .parameterEncodingFailed:
-            return .requestError(error)
-        case .multipartEncodingFailed:
-            return .requestError(error)
-        case .responseValidationFailed:
-            return .requestError(error)
+        case .invalidURL(let url):
+            return "رابط غير صالح: \(url)"
+        case .parameterEncodingFailed(let reason):
+            return "فشل ترميز البيانات: \(reason)"
+        case .multipartEncodingFailed(let reason):
+            return "فشل ترميز الملفات: \(reason)"
+        case .responseValidationFailed(let reason):
+            return "فشل التحقق من الرد: \(reason)"
         case .responseSerializationFailed(let reason):
-            switch reason {
-            case .stringSerializationFailed(let encoding):
-                return .decodingError(DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "String serialization failed with encoding: \(encoding)")))
-            case .jsonSerializationFailed:
-                return .decodingError(DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "JSON serialization failed")))
-            case .customSerializationFailed(let message):
-                return .decodingError(DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: message as? String ?? "")))
-            default:
-                return .networkError(error)
-            }
+            return "خطأ في تحليل البيانات: \(reason)"
         default:
-            return .networkError(error)
+            return afError.errorDescription ?? String(describing: afError)
         }
     }
-    
-    func handleStatusCode405(code: Int, errorMessage: String?, updateErrorMessage: ((String) -> Void)?, onLogout: (() -> Void)?) {
-        if code == 405 {
-            // Show error message for status code 405
-            print("Status code 405: Method Not Allowed")
-            if let message = errorMessage {
-                print("Error message: \(message)")
-                // You might trigger an alert or update UI to show this error message
-                updateErrorMessage?(message)
-            }
-            // Perform logout or other necessary actions
-            onLogout?()
+
+    // MARK: - Decoding Error
+    private func handleDecodingError(_ error: DecodingError) -> String {
+        #if DEBUG
+        print("🔵 [ErrorHandling][DecodingError] \(error)")
+        #endif
+        switch error {
+        case .dataCorrupted(let context):
+            return "البيانات معطوبة: \(context.debugDescription)"
+        case .keyNotFound(let key, let context):
+            return "المفتاح '\(key.stringValue)' مفقود: \(context.debugDescription)"
+        case .typeMismatch(let type, let context):
+            return "نوع غير متطابق: \(type): \(context.debugDescription)"
+        case .valueNotFound(let type, let context):
+            return "القيمة مفقودة: \(type): \(context.debugDescription)"
+        @unknown default:
+            return "خطأ في تحليل البيانات."
+        }
+    }
+
+    // MARK: - URL Error
+    private func handleURLError(_ urlError: URLError) -> String {
+        #if DEBUG
+        print("🟢 [ErrorHandling][URLError] \(urlError)")
+        #endif
+        switch urlError.code {
+        case .notConnectedToInternet: return "لا يوجد اتصال بالإنترنت."
+        case .timedOut:               return "انتهت مهلة الاتصال."
+        case .cancelled:              return "تم إلغاء العملية."
+        case .cannotFindHost:         return "الخادم غير متوفر."
+        case .networkConnectionLost:  return "تم فقدان الاتصال بالشبكة."
+        case .cannotConnectToHost:    return "تعذر الاتصال بالخادم. حاول لاحقًا."
+        case .internationalRoamingOff: return "الاتصال غير ممكن بسبب إعدادات الشبكة."
+        default:
+            return "خطأ في الشبكة: \((urlError as NSError).localizedDescription)"
         }
     }
 }

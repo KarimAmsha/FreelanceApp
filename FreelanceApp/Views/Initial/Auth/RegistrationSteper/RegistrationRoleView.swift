@@ -1,20 +1,21 @@
-//
-//  RegistrationRoleView.swift
-//  FreelanceApp
-//
-//  Created by Karim OTHMAN on 6.05.2025.
-//
-
 import SwiftUI
-
-// MARK: - Enum for Roles
 
 enum UserRole: String {
     case company
     case personal
-}
+    case none
 
-// MARK: - Registration Role View
+    var roleTitle: String? {
+        switch self {
+        case .personal:
+            return "مقدم خدمة"
+        case .company:
+            return "صاحب مشاريع"
+        case .none:
+            return nil
+        }
+    }
+}
 
 struct RegistrationRoleView: View {
     @Binding var selectedRole: UserRole?
@@ -30,27 +31,21 @@ struct RegistrationRoleView: View {
                 RoleCardView(
                     icon: "person.fill",
                     title: "مقدم خدمة",
-                    description: "ستكون قادر على عرض اعمالك وتلقي العروض من العملاء عبر المنصة.",
+                    description: "ستكون قادرًا على عرض أعمالك وتلقي العروض من العملاء عبر المنصة.",
                     selected: selectedRole == .company
-                ) {
-                    selectedRole = .company
-                }
-                .frame(maxWidth: .infinity)
+                ) { selectedRole = .company }
 
                 RoleCardView(
                     icon: "building.2.fill",
                     title: "صاحب مشاريع",
                     description: "سنساعدك في اختيار أفضل مقدمين الخدمات والحصول على خدمة مميزة",
                     selected: selectedRole == .personal
-                ) {
-                    selectedRole = .personal
-                }
-                .frame(maxWidth: .infinity)
+                ) { selectedRole = .personal }
             }
         }
         .padding()
         .background(Color.background())
-        .environment(\.layoutDirection, .rightToLeft)
+        .environment(\..layoutDirection, .rightToLeft)
     }
 }
 
@@ -79,24 +74,6 @@ struct RegistrationStepHeader: View {
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-struct RoleCardTestView: View {
-    @State private var selectedRole: String? = nil
-
-    var body: some View {
-        VStack {
-            Button("اختار Provider") {
-                selectedRole = "provider"
-            }
-            RoleCardView(
-                icon: "person.fill",
-                title: "مقدم خدمة",
-                description: "وصف ما",
-                selected: selectedRole == "provider"
-            ) {}
-        }
     }
 }
 
@@ -135,17 +112,32 @@ struct RoleCardView: View {
 
 struct PrimaryActionButton: View {
     var title: String
+    var isLoading: Bool = false
     var action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.primary())
-                .foregroundColor(.white)
-                .cornerRadius(12)
+        Button(action: {
+            if !isLoading {
+                action()
+            }
+        }) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.primary())
+                    .frame(height: 50)
+
+                if isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                } else {
+                    Text(title)
+                        .foregroundColor(.white)
+                        .font(.headline)
+                }
+            }
+            .frame(maxWidth: .infinity)
         }
+        .disabled(isLoading)
     }
 }
 
@@ -162,5 +154,22 @@ struct SecondaryActionButton: View {
                 .foregroundColor(.black)
                 .cornerRadius(12)
         }
+    }
+}
+
+struct MessageAlertView: View {
+    var message: String
+
+    var body: some View {
+        Text(message)
+            .font(.subheadline)
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(Color.red.opacity(0.1))
+            .foregroundColor(.red)
+            .cornerRadius(8)
+            .padding(.horizontal)
+            .transition(.move(edge: .top).combined(with: .opacity))
+            .animation(.easeInOut, value: message)
     }
 }

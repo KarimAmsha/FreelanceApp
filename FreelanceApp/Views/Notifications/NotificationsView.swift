@@ -1,52 +1,46 @@
-//
-//  NotificationsView.swift
-//  Jaz Client
-//
-//  Created by Karim Amsha on 4.12.2023.
-//
-
 import SwiftUI
 
 struct NotificationsView: View {
     @EnvironmentObject var appRouter: AppRouter
     @EnvironmentObject var settings: UserSettings
-    @StateObject private var viewModel = NotificationsViewModel(errorHandling: ErrorHandling())
     @EnvironmentObject var appState: AppState
+    @StateObject private var viewModel = NotificationsViewModel()
 
     var body: some View {
         VStack {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
-                    if viewModel.notificationsItems.isEmpty {
+                    if viewModel.state.isLoading && viewModel.notificationsItems.isEmpty {
+                        LoadingView()
+                    } else if viewModel.notificationsItems.isEmpty {
                         DefaultEmptyView(title: LocalizedStringKey.noDataFound)
                     } else {
                         ForEach(viewModel.notificationsItems, id: \.self) { item in
                             NotificationRowView(notification: item)
                                 .onTapGesture {
                                     if item.notificationType == .orders {
-                                        appRouter.navigate(to: .orderDetails(item.bodyParams ?? ""))
+//                                        appRouter.navigate(to: .orderDetails(item.bodyParams ?? ""))
                                     }
                                 }
                                 .contextMenu {
-                                    Button(action: {
-                                        // Handle deletion here
+                                    Button(role: .destructive) {
                                         deleteNotification(item)
-                                    }) {
-                                        Text(LocalizedStringKey.delete)
-                                            .font(.system(size: 14, weight: .regular, design: .default)) // Adjust the size and weight as needed
-                                        Image(systemName: "trash")
+                                    } label: {
+                                        Label(LocalizedStringKey.delete, systemImage: "trash")
                                     }
                                 }
                         }
-                        
+
                         if viewModel.shouldLoadMoreData {
-                            Color.clear.onAppear {
-                                loadMore()
-                            }
+                            Color.clear
+                                .frame(height: 1)
+                                .onAppear {
+                                    loadMore()
+                                }
                         }
-                        
-                        if viewModel.isFetchingMoreData {
-                            LoadingView()
+
+                        if viewModel.state.isLoading && !viewModel.notificationsItems.isEmpty {
+                            LoadingView().padding(.vertical, 12)
                         }
                     }
                 }
@@ -72,57 +66,33 @@ struct NotificationsView: View {
                 }
             }
         }
+        .bindLoadingState(viewModel.state, to: appRouter)
         .onAppear {
             loadData()
         }
-        .overlay(
-            MessageAlertObserverView(
-                message: $viewModel.errorMessage,
-                alertType: .constant(.error)
-            )
-        )
     }
-}
 
-#Preview {
-    NotificationsView()
-}
+    private func loadData() {
+        viewModel.resetPagination()
+        viewModel.fetchNotificationsItems(page: 0)
+    }
 
-extension NotificationsView {
-    func loadData() {
-        viewModel.notificationsItems.removeAll()
-        viewModel.fetchNotificationsItems(page: 0, limit: 10)
+    private func loadMore() {
+        viewModel.loadMoreNotifications()
     }
-    
-    func loadMore() {
-        viewModel.loadMoreNotifications(limit: 10)
-    }
-    
-    func deleteNotification(_ notification: NotificationItem) {
-        let alertModel = AlertModel(
-            icon: "",
-            title: LocalizedStringKey.delete,
-            message: LocalizedStringKey.deleteMessage,
-            hasItem: false,
-            item: "",
-            okTitle: LocalizedStringKey.ok,
-            cancelTitle: "",
-            hidesIcon: true,
-            hidesCancel: true,
-            onOKAction: {
-                appRouter.togglePopup(nil)
-                viewModel.deleteNotifications(id: notification.id ?? "") { message in
+
+    private func deleteNotification(_ notification: NotificationItem) {
+        appRouter.showAlert(
+            title: "هل تريد حذف هذا الإشعار؟",
+            message: nil,
+            okTitle: "حذف",
+            cancelTitle: "رجوع",
+            onOK: {
+                viewModel.deleteNotification(id: notification.id ?? "") { message in
+                    appRouter.show(.success, message: message)
                     loadData()
-                }
-            },
-            onCancelAction: {
-                withAnimation {
-                    appRouter.togglePopup(nil)
                 }
             }
         )
-
-        appRouter.togglePopup(.alert(alertModel))
     }
 }
-

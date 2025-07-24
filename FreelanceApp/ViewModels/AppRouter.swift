@@ -1,53 +1,21 @@
-//
-//  AppRouter.swift
-//  Wishy
-//
-//  Created by Karim Amsha on 27.04.2024.
-//
-
 import SwiftUI
 
+// MARK: - App Router
 final class AppRouter: ObservableObject {
-    
-    public enum Destination: Codable, Hashable {
+
+    // MARK: - Navigation Destinations
+    enum Destination: Codable, Hashable {
         case profile
         case editProfile
         case changePassword
         case changePhoneNumber
         case contactUs
-        case rewards
-        case paymentSuccess
         case constant(ConstantItem)
-        case myOrders
-        case orderDetails(String)
-        case upcomingReminders
-        case productsListView(Category?)
-        case productDetails(String?)
-        case selectedGiftView
-        case friendWishes(User)
-        case friendWishesListView
-        case friendWishesDetailsView(String?)
-        case retailFriendWishesView
-        case retailPaymentView(String)
         case addressBook
         case addAddressBook
         case editAddressBook(AddressItem)
         case addressBookDetails(AddressItem)
         case notifications
-        case checkoutView(CartItems?)
-        case productsSearchView
-        case wishesView
-        case userProducts(String)
-        case addUserProduct
-        case VIPGiftView(CategoryType)
-        case userWishes(String, String)
-        case wishCheckOut(String)
-        case walletView
-        case explorWishView(String)
-        case myWishView(String)
-        case addReview(String)
-        case deliveryDetails
-        case earningsView
         case notificationsSettings
         case accountSettings
         case freelancerList(categoryId: String, categoryTitle: String, freelancersCount: Int)
@@ -55,52 +23,173 @@ final class AppRouter: ObservableObject {
         case serviceDetails
         case chat(chatId: String, currentUserId: String)
         case selectMainSpecialty
-    }
-    
-    public enum Popup: Hashable {
-        case cancelOrder(AlertModel)
-        case alert(AlertModel)
-        case inputAlert(AlertModelWithInput)
+        case deliveryDetails
+        case earningsView
     }
 
-    public enum AppPopup: Hashable {
-        case alertError(String, String)
-        case alertSuccess(String, String)
-        case alertInfo(String, String)
-    }
-
+    // MARK: - State
     @Published var navPath = NavigationPath()
-    @Published var activePopup: Popup? = nil
-    @Published var appPopup: AppPopup? = nil
+    @Published var appMessage: AppMessage? = nil
+    @Published var alertModel: ReusableAlertModel? = nil  // ✅ الجديد
+    @Published var isLoading: Bool = false
 
+    // MARK: - Navigation
     func navigate(to destination: Destination) {
         navPath.append(destination)
     }
-    
+
     func navigateBack() {
         if !navPath.isEmpty {
             navPath.removeLast()
         }
     }
-    
+
     func navigateToRoot() {
         navPath.removeLast(navPath.count)
     }
-    
-    func togglePopup(_ popup: Popup?) {
-        activePopup = popup
-    }
-        
-    func toggleAppPopup(_ popup: AppPopup?) {
-        appPopup = popup
-    }
-    
-    func dismissPopup() {
-        activePopup = nil
+
+    // MARK: - Unified Message API
+    func show(_ type: AppMessageType, message: String, title: String? = nil) {
+        appMessage = AppMessage(type: type, title: title, message: message)
     }
 
-    func dismissAppPopup() {
-        appPopup = nil
+    func dismissMessage() {
+        appMessage = nil
+    }
+    
+    func showAlert(
+        title: String,
+        message: String? = nil,
+        okTitle: String = "موافق",
+        cancelTitle: String = "رجوع",
+        onOK: @escaping () -> Void,
+        onCancel: (() -> Void)? = nil
+    ) {
+        alertModel = ReusableAlertModel(
+            title: title,
+            message: message,
+            okTitle: okTitle,
+            cancelTitle: cancelTitle,
+            onOK: onOK,
+            onCancel: onCancel
+        )
+    }
+
+    func dismissAlert() {
+        alertModel = nil
     }
 }
 
+extension AppRouter {
+    func observeState(_ state: LoadingState) {
+        switch state {
+        case .loading:
+            self.isLoading = true
+        case .idle, .success, .failure:
+            self.isLoading = false
+        }
+
+        if case .failure(let err) = state {
+            self.show(.error, message: err)
+        } else if case .success(let msg) = state, let msg = msg {
+            self.show(.success, message: msg)
+        }
+    }
+}
+
+extension View {
+    func bindLoadingState(_ state: LoadingState, to router: AppRouter) -> some View {
+        self.onChange(of: state) { newState in
+            router.observeState(newState)
+        }
+    }
+}
+
+import SwiftUI
+
+struct ReusableAlertModel: Identifiable {
+    let id = UUID()
+
+    let title: String
+    let message: String?
+    let okTitle: String
+    let cancelTitle: String
+    let onOK: () -> Void
+    let onCancel: (() -> Void)?
+}
+
+struct AppCustomAlertView: View {
+    let alert: ReusableAlertModel
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text(alert.title)
+                .font(.headline)
+                .multilineTextAlignment(.center)
+
+            if let message = alert.message {
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+            }
+
+            HStack(spacing: 12) {
+                Button(action: {
+                    alert.onCancel?()
+                    isPresented = false
+                }) {
+                    Text(alert.cancelTitle)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.gray.opacity(0.2))
+                        .foregroundColor(.black)
+                        .cornerRadius(10)
+                }
+
+                Button(action: {
+                    alert.onOK()
+                    isPresented = false
+                }) {
+                    Text(alert.okTitle)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.accentColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+            }
+        }
+        .padding()
+        .background(.ultraThinMaterial)
+        .cornerRadius(20)
+        .padding(.horizontal, 40)
+        .shadow(radius: 10)
+    }
+}
+
+extension View {
+    func appAlert(using router: AppRouter) -> some View {
+        self.overlay(
+            Group {
+                if let alert = router.alertModel {
+                    ZStack {
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                router.dismissAlert()
+                            }
+
+                        AppCustomAlertView(alert: alert, isPresented: Binding(
+                            get: { router.alertModel != nil },
+                            set: { newVal in if !newVal { router.dismissAlert() } }
+                        ))
+                    }
+                    .transition(.opacity)
+                    .animation(.easeInOut, value: router.alertModel != nil)
+                }
+            }
+        )
+    }
+}

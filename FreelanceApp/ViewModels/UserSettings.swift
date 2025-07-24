@@ -1,128 +1,130 @@
-//
-//  UserSettings.swift
-//  Wishy
-//
-//  Created by Karim Amsha on 27.04.2024.
-//
-
 import SwiftUI
 import Combine
 import Foundation
 
+enum UserStatus: String, Codable {
+    case guest
+    case incompleteProfile
+    case registered
+    case none
+}
+
 class UserSettings: ObservableObject {
     static let shared = UserSettings()
-    
+
     @Published var user: User?
     @Published var id: String?
     @Published var token: String?
-    @Published var userRole: UserRole = .personal
+    @AppStorage("userRole") var userRole: UserRole = .personal
+    @AppStorage("userStatus") var userStatus: UserStatus = .none
+    @AppStorage("loggedIn") var loggedIn: Bool = false
+
     @Published var fcmToken: String? {
         didSet {
             if let token = fcmToken {
-                saveFCMTokenToStorage(token: token)
+                UserDefaults.standard.set(token, forKey: Keys.fcmToken)
             }
         }
     }
 
-    @Published var loggedIn: Bool {
-        didSet {
-            if !loggedIn {
-                user = nil
-                id = nil
-                token = nil
-                fcmToken = UserDefaults.standard.string(forKey: Keys.fcmToken) // تحميل التوكن هنا
-                clearUserStorage()
-            }
-        }
-    }
-    
+    // MARK: - Init
     init() {
-        // Initialize properties first
-        user = nil
-        id = nil
-        token = nil
-        loggedIn = false
-        
-        // Now you can call methods
+        // حمل بيانات المستخدم إن وجدت
         if let storedUser = loadUserFromStorage() {
             user = storedUser.user
             id = storedUser.id
             token = storedUser.token
-            loggedIn = true
         }
-        // 👇 استرجاع الـrole المحفوظ
-        if let roleString = UserDefaults.standard.string(forKey: Keys.userRole),
-           let role = UserRole(rawValue: roleString) {
-            userRole = role
-        }
+        // fcmToken فقط للقراءة، إذا تحتاج
+        fcmToken = UserDefaults.standard.string(forKey: Keys.fcmToken)
     }
-    
+
+    // MARK: - Actions
+
     func login(user: User, id: String, token: String) {
         self.user = user
         self.id = id
         self.token = token
-        loggedIn = true
-        // 👇 الخطوة الأهم:
+        self.loggedIn = true
+        self.userStatus = .registered
+
         if let role = user.register_type, let userRole = UserRole(rawValue: role) {
             self.userRole = userRole
-            UserDefaults.standard.set(role, forKey: Keys.userRole)
         }
         saveUserToStorage(user: user, id: id, token: token)
     }
-    
+
+    func setIncompleteProfile(user: User, id: String, token: String) {
+        self.user = user
+        self.id = id
+        self.token = token
+        self.loggedIn = false
+        self.userStatus = .incompleteProfile
+
+        if let role = user.register_type, let userRole = UserRole(rawValue: role) {
+            self.userRole = userRole
+        }
+        saveUserToStorage(user: user, id: id, token: token)
+    }
+
     func guestLogin(token: String) {
         self.user = nil
         self.id = nil
         self.token = token
-        loggedIn = true
+        self.loggedIn = true
+        self.userStatus = .guest
         saveTokenToStorage(token: token)
     }
-    
+
     func logout() {
+        clearUserData()
         loggedIn = false
+        userStatus = .none
+        userRole = .none
     }
-    
-    private func saveFCMTokenToStorage(token: String) {
-        UserDefaults.standard.set(token, forKey: Keys.fcmToken)
-    }
+
+    // MARK: - Storage
 
     private func loadUserFromStorage() -> (user: User, id: String, token: String)? {
         if let userData = UserDefaults.standard.data(forKey: Keys.userData),
            let decodedUser = try? JSONDecoder().decode(User.self, from: userData),
-           let storedId = UserDefaults.standard.string(forKey:  Keys.id),
-           let storedToken = UserDefaults.standard.string(forKey:  Keys.token) {
+           let storedId = UserDefaults.standard.string(forKey: Keys.id),
+           let storedToken = UserDefaults.standard.string(forKey: Keys.token) {
             return (user: decodedUser, id: storedId, token: storedToken)
         }
         return nil
     }
-    
+
     private func saveUserToStorage(user: User, id: String, token: String) {
         if let encodedData = try? JSONEncoder().encode(user) {
             UserDefaults.standard.set(encodedData, forKey: Keys.userData)
             UserDefaults.standard.set(id, forKey: Keys.id)
-            UserDefaults.standard.set(token, forKey:  Keys.token)
+            UserDefaults.standard.set(token, forKey: Keys.token)
         }
     }
-    
+
     private func saveTokenToStorage(token: String) {
-        UserDefaults.standard.set(token, forKey:  Keys.token)
+        UserDefaults.standard.set(token, forKey: Keys.token)
     }
 
-    private func clearUserStorage() {
-        UserDefaults.standard.removeObject(forKey: Keys.userData)
-        UserDefaults.standard.removeObject(forKey:  Keys.id)
-        UserDefaults.standard.removeObject(forKey:  Keys.token)
-        UserDefaults.standard.removeObject(forKey: Keys.fcmToken)
-        UserDefaults.standard.removeObject(forKey: Keys.userRole)
-    }
-}
+    private func clearUserData() {
+        user = nil
+        id = nil
+        token = nil
 
-extension UserSettings {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: Keys.userData)
+        defaults.removeObject(forKey: Keys.id)
+        defaults.removeObject(forKey: Keys.token)
+        defaults.removeObject(forKey: "_userRole")     // AppStorage key
+        defaults.removeObject(forKey: "_userStatus")   // AppStorage key
+        defaults.removeObject(forKey: "_loggedIn")
+    }
+
     private struct Keys {
         static let id = "id"
         static let userData = "userData"
         static let token = "token"
         static let fcmToken = "fcmToken"
-        static let userRole = "userRole"
     }
 }

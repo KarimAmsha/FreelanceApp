@@ -15,13 +15,16 @@ struct SplashView: View {
             Color.primaryGradientColor()
                 .ignoresSafeArea()
 
-            Image("")
+            Image("ic_logo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 140, height: 140)
+                .cornerRadius(12)
                 .opacity(logoOpacity)
         }
         .onAppear {
             withAnimation(.easeInOut(duration: 3)) {
                 self.logoOpacity = 1.0
-//                UserSettings.shared.loggedIn = true
             }
         }
     }

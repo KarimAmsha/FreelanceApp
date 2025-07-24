@@ -5,7 +5,7 @@ struct PrivacyPolicyAgreementView: View {
     var onAgree: () -> Void
 
     @State private var contentHeight: CGFloat = 0
-    @StateObject private var initialViewModel = InitialViewModel(errorHandling: ErrorHandling())
+    @StateObject private var initialViewModel = InitialViewModel()
 
     var body: some View {
         VStack(spacing: 16) {
@@ -51,7 +51,7 @@ struct PrivacyPolicyAgreementView: View {
         }
         .padding()
         .background(Color.white)
-        .environment(\.layoutDirection, .rightToLeft)
+        .environment(\..layoutDirection, .rightToLeft)
         .onAppear {
             initialViewModel.fetchConstantsItems()
         }

@@ -16,12 +16,12 @@ struct SuccessSubmissionView: View {
                     .foregroundColor(Color.primary())
 
                 Text("لقد تم تقديم طلبك بنجاح!")
-                    .font(.title3.bold())
+                    .customFont(weight: .bold, size: 19)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.primaryBlack())
 
                 Text("نفخر بمجهودك، لقد قمنا باستلام طلبك وهو الآن قيد المراجعة من الإدارة. سنقوم بإرسال رسالة تفيد بقبول أو رفض حسابك.")
-                    .font(.footnote)
+                    .customFont(weight: .regular, size: 13)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.gray)
                     .padding(.horizontal)
@@ -38,7 +38,7 @@ struct SuccessSubmissionView: View {
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 isPresented = false
-                appState.currentPage = .home
+                appState.currentTab = .home
                 UserSettings.shared.loggedIn = true
             }
         }

@@ -15,11 +15,12 @@ import goSellSDK
 struct FreelanceApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject var languageManager = LanguageManager()
+    @StateObject var appRouter = AppRouter()
     @StateObject var appState = AppState()
-    @StateObject private var authViewModel = AuthViewModel(errorHandling: ErrorHandling())
-    @StateObject private var userViewModel = UserViewModel(errorHandling: ErrorHandling())
-    @StateObject private var settings = UserSettings.shared
-    @StateObject var errorManager = ErrorManager()
+    @StateObject private var authViewModel = AuthViewModel()
+    @StateObject private var userViewModel = UserViewModel()
+    @StateObject var settings = UserSettings.shared
+    @StateObject var regViewModel = RegistrationViewModel()
 
     init() {
         UserDefaults.standard.set([languageManager.currentLanguage.identifier], forKey: "AppleLanguages")
@@ -32,10 +33,12 @@ struct FreelanceApp: App {
                 .environmentObject(languageManager)
                 .environment(\.locale, languageManager.currentLanguage)
                 .environment(\.layoutDirection, languageManager.isRTL ? .rightToLeft : .leftToRight)
+                .environmentObject(appRouter)
                 .environmentObject(appState)
                 .environmentObject(authViewModel)
                 .environmentObject(settings)
-                .environmentObject(errorManager)
+                .environmentObject(regViewModel)
+                .environmentObject(userViewModel)
                 .preferredColorScheme(.light)
         }
     }

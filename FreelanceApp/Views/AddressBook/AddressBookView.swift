@@ -9,13 +9,13 @@ import SwiftUI
 
 struct AddressBookView: View {
     @EnvironmentObject var appRouter: AppRouter
-    @StateObject private var viewModel = UserViewModel(errorHandling: ErrorHandling())
+    @StateObject private var viewModel = UserViewModel()
 
     var body: some View {
         VStack {
             GeometryReader { geometry in
                 VStack(alignment: .center) {
-                    if viewModel.isLoading {
+                    if viewModel.state.isLoading && (viewModel.addressBook?.isEmpty ?? true) {
                         LoadingView()
                     }
 
@@ -46,15 +46,11 @@ struct AddressBookView: View {
                                 .scrollIndicators(.hidden)
                                 .environment(\.layoutDirection, .leftToRight)
                             }
-                            Spacer()
                         }
                         .frame(maxWidth: .infinity)
                         .frame(minHeight: geometry.size.height)
                         .background(Color.white.cornerRadius(8))
                     }
-                    
-                    Spacer()
-                    
                 }
                 .padding(.horizontal, 24)
                 .edgesIgnoringSafeArea(.bottom)
@@ -70,7 +66,6 @@ struct AddressBookView: View {
                     Image(systemName: "plus")
                         .resizable()
                         .frame(width: 20, height: 20)
-                        .font(.title)
                         .foregroundColor(.white)
                         .padding()
                         .background(Color.primary())
@@ -82,6 +77,7 @@ struct AddressBookView: View {
         }
         .navigationBarBackButtonHidden()
         .background(Color.background())
+        .bindLoadingState(viewModel.state, to: appRouter)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 HStack {
@@ -98,7 +94,7 @@ struct AddressBookView: View {
                             .padding(.horizontal, 8)
                             .background(Color.white.cornerRadius(8))
                     }
-                    
+
                     Text(LocalizedStringKey.addressBook)
                         .customFont(weight: .bold, size: 20)
                         .foregroundColor(Color.black141F1F())
@@ -113,69 +109,30 @@ struct AddressBookView: View {
 
 #Preview {
     AddressBookView()
+        .environmentObject(AppRouter())
 }
 
 extension AddressBookView {
     private func getAddressList() {
-        viewModel.getAddressList()
+        viewModel.fetchAddresses()
     }
-    
+
     private func showAlertDeleteMessage(item: AddressItem) {
-        let alertModel = AlertModel(
-            icon: "",
-            title: LocalizedStringKey.delete,
-            message: LocalizedStringKey.deleteMessage,
-            hasItem: false,
-            item: "",
-            okTitle: LocalizedStringKey.ok,
-            cancelTitle: LocalizedStringKey.back,
-            hidesIcon: true,
-            hidesCancel: false,
-            onOKAction: {
-                appRouter.togglePopup(nil)
-                DispatchQueue.main.asyncAfter(deadline: .now()+0.3, execute: {
-                    deleteAddress(item: item)
-                })
-            },
-            onCancelAction: {
-                withAnimation {
-                    appRouter.togglePopup(nil)
-                }
+        appRouter.showAlert(
+            title: "هل تريد حذف هذا العنوان؟",
+            message: nil,
+            okTitle: "حذف",
+            cancelTitle: "رجوع",
+            onOK: {
+                deleteAddress(item: item)
             }
         )
-
-        appRouter.togglePopup(.alert(alertModel))
     }
-    
+
     private func deleteAddress(item: AddressItem) {
         viewModel.deleteAddress(id: item.id ?? "") { message in
-            showSuccessMessage(message: message)
+            appRouter.show(.success, message: message)
             getAddressList()
         }
-    }
-    
-    private func showSuccessMessage(message: String) {
-        let alertModel = AlertModel(
-            icon: "",
-            title: "",
-            message: message,
-            hasItem: false,
-            item: "",
-            okTitle: LocalizedStringKey.ok,
-            cancelTitle: LocalizedStringKey.back,
-            hidesIcon: true,
-            hidesCancel: true,
-            onOKAction: {
-                appRouter.togglePopup(nil)
-                appRouter.navigateBack()
-            },
-            onCancelAction: {
-                withAnimation {
-                    appRouter.togglePopup(nil)
-                }
-            }
-        )
-
-        appRouter.togglePopup(.alert(alertModel))
     }
 }

@@ -10,6 +10,7 @@ import MapKit
 import SwiftUI
 
 class Utilities: NSObject {
+    @MainActor
     static func moveToUserLocation(region: Binding<MKCoordinateRegion>, span: MKCoordinateSpan = .init(latitudeDelta: 0.05, longitudeDelta: 0.05)) {
         let lat = LocationManager.shared.latitude
         let lng = LocationManager.shared.longitude

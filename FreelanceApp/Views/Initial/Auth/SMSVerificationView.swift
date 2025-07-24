@@ -1,124 +1,127 @@
-//
-//  SMSVerificationView.swift
-//  Wishy
-//
-//  Created by Karim Amsha on 27.04.2024.
-//
-
 import SwiftUI
-import Combine
-import PopupView
+import FirebaseMessaging
 
 struct SMSVerificationView: View {
-    @EnvironmentObject var appState: AppState
-    @EnvironmentObject var settings: UserSettings
-    @State private var passCodeFilled = false
-    @Environment(\.presentationMode) var presentationMode
-    @State private var totalSeconds = 59
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-    var minutes: Int { totalSeconds / 60 }
-    var seconds: Int { totalSeconds % 60 }
-
-    var id: String
-    var mobile: String
-
-    @State var code = ""
-    @FocusState private var focusedField: Int?
-
-    @StateObject private var viewModel = AuthViewModel(errorHandling: ErrorHandling())
-    private let errorHandling = ErrorHandling()
     @Binding var loginStatus: LoginStatus
+    @State private var code = ""
+    @State private var totalSeconds: Int = 59
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    @EnvironmentObject var settings: UserSettings
     @EnvironmentObject var appRouter: AppRouter
+    var referalUrl: URL? = nil
+    @EnvironmentObject var regViewModel: RegistrationViewModel
+
+    private var formattedTime: String {
+        String(format: "%02d:%02d", totalSeconds / 60, totalSeconds % 60)
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 8) {
-                    Text("👋")
-                    Text("ادخل رمز التحقق!")
-                        .font(.title3.bold())
-                        .foregroundColor(.primaryBlack())
-                }
+        VStack(alignment: .leading, spacing: 28) {
+            Text("أدخل رمز التفعيل")
+                .customFont(weight: .bold, size: 20)
+                .foregroundColor(.primaryBlack())
+
+            Text(settings.user?.phone_number ?? "رقم غير معروف")
+                .customFont(weight: .bold, size: 17)
+                .foregroundColor(.primary())
                 .frame(maxWidth: .infinity, alignment: .leading)
-
-                Text("قم بادخال كلمة المرور المؤقتة المرسلة الى رقم هاتفك")
-                    .font(.footnote)
-                    .multilineTextAlignment(.leading)
-                    .foregroundColor(.gray)
-
-                Text("+970 594 0700 68")
-                    .font(.headline)
-            }
 
             OtpFormFieldView(combinedPins: $code)
                 .frame(maxWidth: .infinity, alignment: .center)
-                .disabled(viewModel.isLoading)
+                .disabled(regViewModel.state.isLoading)
                 .environment(\.layoutDirection, .leftToRight)
 
-            Spacer()
-
-            Button {
-                verify()
-            } label: {
-                Text("تسجيل الدخول")
+            if code.trimmingCharacters(in: .whitespaces).count < 4 {
+                Text("يجب إدخال 4 أرقام على الأقل")
+                    .customFont(weight: .regular, size: 13)
+                    .foregroundColor(.red)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
-            .buttonStyle(GradientPrimaryButton(fontSize: 16, fontWeight: .bold, background: Color.primaryGradientColor(), foreground: .white, height: 48, radius: 12))
-            .disabled(viewModel.isLoading)
 
-            HStack(spacing: 100) {
-                Text("0:\(seconds) - لم تستلم رمزًا؟")
-                    .customFont(weight: .regular, size: 12)
-                    .foregroundColor(.grayA4ACAD())
-
-                Button("طلب رمز جديد") {
-                    resendCode()
+            VStack(spacing: 10) {
+                if totalSeconds > 0 {
+                    Text("لم تستلم رمزًا؟ يمكنك إعادة الطلب بعد \(formattedTime)")
+                        .customFont(weight: .regular, size: 14)
+                        .foregroundColor(.grayA4ACAD())
+                } else {
+                    Button {
+                        resendCode()
+                    } label: {
+                        Text(regViewModel.state.isLoading ? "جاري الإرسال..." : "طلب رمز جديد")
+                            .customFont(weight: .bold, size: 15)
+                            .foregroundColor(.primary())
+                    }
+                    .disabled(regViewModel.state.isLoading)
                 }
-                .buttonStyle(CustomButtonStyle(fontSize: 14, fontWeight: .bold, background: .primaryLight(), foreground: .primaryBlack()))
             }
             .frame(maxWidth: .infinity, alignment: .center)
+
+            Button("تأكيد الدخول") {
+                verify()
+            }
+            .buttonStyle(
+                GradientPrimaryButton(
+                    fontSize: 16,
+                    fontWeight: .bold,
+                    background: Color.primaryGradientColor(),
+                    foreground: .white,
+                    height: 48,
+                    radius: 12
+                )
+            )
+            .disabled(code.trimmingCharacters(in: .whitespaces).count < 4 || regViewModel.state.isLoading)
+
+            Spacer()
         }
-        .padding(24)
+        .padding()
         .dismissKeyboardOnTap()
         .navigationBarBackButtonHidden()
         .background(Color.background())
         .onReceive(timer) { _ in
-            if totalSeconds > 0 {
-                totalSeconds -= 1
-            }
+            if totalSeconds > 0 { totalSeconds -= 1 }
         }
-        .overlay(
-            MessageAlertObserverView(
-                message: $viewModel.errorMessage,
-                alertType: .constant(.error)
-            )
-        )
+        .bindLoadingState(regViewModel.state, to: appRouter)
+        .environment(\.layoutDirection, .rightToLeft)
     }
 
-    private func verify() {
-        let params = [
-            "id": appState.userId,
-            "verify_code": code,
-            "phone_number": appState.phoneNumber,
-            "by": appState.referalUrl?.lastPathComponent ?? ""
-        ] as [String : Any]
+    // MARK: - Actions
 
-        viewModel.verify(params: params) { profileCompleted, token in
-            if profileCompleted {
+    private func verify() {
+        guard code.trimmingCharacters(in: .whitespaces).count >= 4 else {
+            appRouter.show(.error, message: "يرجى إدخال رمز التفعيل الصحيح", title: "خطأ")
+            return
+        }
+
+        regViewModel.otp = code
+
+        regViewModel.verifyPhone(verifyCode: code) {
+            // بعد نجاح التحقق
+            if regViewModel.isCompleteProfile {
                 settings.loggedIn = true
+                loginStatus = .home
             } else {
-                loginStatus = .profile(appState.token)
+                loginStatus = .completeProfile
             }
         }
     }
 
     private func resendCode() {
-        let params = ["id": appState.userId] as [String : Any]
-        viewModel.resend(params: params) {}
+        guard !regViewModel.state.isLoading else { return }
+        guard let id = regViewModel.user?.id ?? settings.id else {
+            appRouter.show(.error, message: "المعرّف غير متوفر", title: "خطأ")
+            return
+        }
+        regViewModel.resend(id: id) {
+            totalSeconds = 59
+        }
     }
 }
 
+
 #Preview {
-    SMSVerificationView(id: "", mobile: "", loginStatus: .constant(.verification))
-        .environmentObject(AppState())
+    SMSVerificationView(loginStatus: .constant(.verification))
         .environmentObject(UserSettings())
+        .environmentObject(AppRouter())
+        .environmentObject(RegistrationViewModel())
 }

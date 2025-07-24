@@ -288,38 +288,10 @@ enum DateTimePickerMode {
 
 enum LoginStatus: Equatable {
     case welcome
-    case register
     case login
-    case forgetPassword
-    case changePassword
-    case identityConfirmation(String)
     case verification
-    case selectLocation
-    case profile(String)
-
-    static func == (lhs: LoginStatus, rhs: LoginStatus) -> Bool {
-        switch (lhs, rhs) {
-        case (.welcome, .welcome),
-             (.register, .register),
-            (.login, .login),
-            (.forgetPassword, .forgetPassword),
-            (.changePassword, .changePassword),
-             (.verification, .verification),
-             (.selectLocation, .selectLocation):
-            return true
-
-        case let (.identityConfirmation(lhsString), .identityConfirmation(rhsString)):
-            // Compare identityConfirmation based on the associated String
-            return lhsString == rhsString
-
-        case let (.profile(lhsString), .profile(rhsString)):
-            // Compare profiles based on the associated String and array of tuples
-            return lhsString == rhsString 
-
-        default:
-            return false
-        }
-    }
+    case completeProfile
+    case home
 }
 
 enum PlaceType: String, Codable {

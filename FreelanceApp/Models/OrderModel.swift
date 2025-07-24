@@ -8,22 +8,14 @@
 import Foundation
 
 // MARK: - OrderResponse
-struct OrderResponse: Codable {
-    let items: [OrderModel]?
+struct OrderResponse: Decodable, APIBaseResponse {
+    var status: Bool
+    var message: String
     let statusCode: Int?
-    let message: String?
     let messageAr: String?
     let messageEn: String?
-    let pagination: Pagination?
-    
-    enum CodingKeys: String, CodingKey {
-        case items
-        case statusCode = "status_code"
-        case message
-        case messageAr = "messageAr"
-        case messageEn = "messageEn"
-        case pagination = "pagenation"
-    }
+    var items: [OrderModel]?
+    var pagination: Pagination?
 }
 
 // MARK: - Order

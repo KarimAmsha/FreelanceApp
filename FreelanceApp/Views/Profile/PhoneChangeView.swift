@@ -1,12 +1,12 @@
 import SwiftUI
 
 struct PhoneChangeView: View {
-    @StateObject var vm = PhoneChangeViewModel(errorHandling: ErrorHandling())
+    @StateObject var vm = PhoneChangeViewModel()
     @EnvironmentObject var appRouter: AppRouter
 
     var body: some View {
         ZStack {
-            Color(.systemGroupedBackground).ignoresSafeArea()
+            Color.background().ignoresSafeArea()
 
             VStack(alignment: .leading) {
                 if vm.step == .enterOldPhone {
@@ -28,17 +28,16 @@ struct PhoneChangeView: View {
                         .foregroundColor(.white)
                         .cornerRadius(10)
                         .padding(.top, 20)
+
                         if let err = vm.errorMessage {
                             Text(err)
                                 .foregroundColor(.red)
-                                .font(.footnote)
+                                .customFont(weight: .regular, size: 12)
                         }
                         Spacer()
                     }
                     .padding()
-                }
-
-                else if vm.step == .enterNewPhone {
+                } else if vm.step == .enterNewPhone {
                     VStack(spacing: 18) {
                         MobileView(
                             mobile: $vm.newPhone,
@@ -46,24 +45,23 @@ struct PhoneChangeView: View {
                             countryPatternPalceholder: "5# ### ####"
                         )
                         Button("تعديل الرقم وإرسال كود") {
-                            vm.updateNewPhone()
+                            vm.updateNewPhone(onSuccess: {})
                         }
                         .frame(maxWidth: .infinity, minHeight: 48)
                         .background(Color.primary())
                         .foregroundColor(.white)
                         .cornerRadius(10)
                         .padding(.top, 10)
+
                         if let err = vm.errorMessage {
                             Text(err)
                                 .foregroundColor(.red)
-                                .font(.footnote)
+                                .customFont(weight: .regular, size: 12)
                         }
                         Spacer()
                     }
                     .padding()
-                }
-
-                else if vm.step == .success {
+                } else if vm.step == .success {
                     VStack(spacing: 32) {
                         Spacer()
                         Image(systemName: "checkmark.circle.fill")
@@ -71,8 +69,8 @@ struct PhoneChangeView: View {
                             .frame(width: 62, height: 62)
                             .foregroundColor(.green)
                         Text("تم تغيير رقم الهاتف بنجاح")
-                            .font(.title3)
-                            .fontWeight(.bold)
+                            .customFont(weight: .bold, size: 18)
+                            .foregroundColor(.primary())
                         Spacer()
                     }
                 }
@@ -87,7 +85,7 @@ struct PhoneChangeView: View {
                     timer: vm.timer,
                     canResend: vm.canResend,
                     error: vm.errorMessage,
-                    onSubmit: { vm.verifyOldOtp { _ in } },
+                    onSubmit: { vm.verifyOldOtp {  } },
                     onResend: { vm.resendOldOtp() }
                 )
                 .presentationDetents([.medium])
@@ -103,7 +101,7 @@ struct PhoneChangeView: View {
                     timer: vm.timer,
                     canResend: vm.canResend,
                     error: vm.errorMessage,
-                    onSubmit: { vm.verifyNewOtp { _ in } },
+                    onSubmit: { vm.verifyNewOtp {  } },
                     onResend: { vm.resendNewOtp() }
                 )
                 .presentationDetents([.medium])
@@ -119,20 +117,15 @@ struct PhoneChangeView: View {
                     } label: {
                         Image(systemName: "chevron.backward")
                             .font(.title3)
-                            .foregroundColor(.primary)
+                            .foregroundColor(.primary())
                     }
                     Text(vm.step == .enterOldPhone ? "تغيير رقم الهاتف" : "ادخال رقم الهاتف الجديد")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.primary)
+                        .customFont(weight: .bold, size: 18)
+                        .foregroundColor(.primary())
                 }
             }
         }
     }
-}
-
-#Preview {
-    PhoneChangeView()
-        .environmentObject(AppRouter())
 }
 
 struct OtpPopupView: View {
@@ -152,9 +145,9 @@ struct OtpPopupView: View {
                 .foregroundColor(.gray.opacity(0.22))
                 .padding(.top, 8)
             Text("أدخل رمز التحقق")
-                .font(.system(size: 18, weight: .bold))
+                .customFont(weight: .bold, size: 18)
             Text("تم إرسال رمز من 4 خانات إلى: \(phone)")
-                .font(.system(size: 14))
+                .customFont(weight: .regular, size: 14)
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
             OtpFormFieldView(combinedPins: $otp)
@@ -165,7 +158,7 @@ struct OtpPopupView: View {
                     if canResend { onResend() }
                 }) {
                     Text("طلب رمز جديد")
-                        .font(.system(size: 15))
+                        .customFont(weight: .medium, size: 15)
                         .foregroundColor(canResend ? Color.primaryGreen() : Color.gray.opacity(0.7))
                         .padding(.horizontal, 18)
                         .padding(.vertical, 7)
@@ -175,14 +168,14 @@ struct OtpPopupView: View {
                 .disabled(!canResend)
                 Spacer()
                 Text("\(timer) ث")
-                    .font(.system(size: 14))
+                    .customFont(weight: .regular, size: 14)
                     .foregroundColor(.gray)
             }
             .padding(.vertical, 2)
             if let err = error {
                 Text(err)
                     .foregroundColor(.red)
-                    .font(.system(size: 13))
+                    .customFont(weight: .regular, size: 13)
             }
             Spacer()
             Button(action: onSubmit) {
@@ -190,7 +183,7 @@ struct OtpPopupView: View {
                     ProgressView()
                 } else {
                     Text("تأكيد")
-                        .font(.system(size: 17, weight: .semibold))
+                        .customFont(weight: .medium, size: 17)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
@@ -202,4 +195,9 @@ struct OtpPopupView: View {
         }
         .padding()
     }
+}
+
+#Preview {
+    PhoneChangeView()
+        .environmentObject(AppRouter())
 }

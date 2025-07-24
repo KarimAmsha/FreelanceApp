@@ -11,12 +11,12 @@ import RefreshableScrollView
 import FirebaseMessaging
 
 struct HomeView: View {
-    @StateObject var viewModel = InitialViewModel(errorHandling: ErrorHandling())
+    @StateObject var viewModel = InitialViewModel()
     @EnvironmentObject var appRouter: AppRouter
     @State private var searchText: String = ""
     @State private var currentIndex = 0
     private let timer = Timer.publish(every: 3, on: .main, in: .common).autoconnect()
-    @StateObject private var userViewModel = UserViewModel(errorHandling: ErrorHandling())
+    @StateObject private var userViewModel = UserViewModel()
 
     var body: some View {
         GeometryReader { geometry in
@@ -24,19 +24,19 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("المشاريع الفعالة")
                         .font(.system(size: 16, weight: .bold))
-                    
+
                     let user = UserSettings.shared.user
                     GeneralCardView(
                         title: "برمجة تطبيق",
                         rating: user?.rate ?? 0,
                         reviewer: user?.full_name ?? "بدون اسم",
-                        completedProjects: 0,//user?.projectsCount ?? 0,
+                        completedProjects: 0,
                         price: user?.wallet?.formattedAsCurrency() ?? "$0",
                         date: user?.formattedDOB ?? "",
                         status: user?.isVerify == true ? "موثّق" : "غير موثّق"
                     )
                 }
-                
+
                 if let sliders = viewModel.homeItems?.slider, !sliders.isEmpty {
                     SliderView(items: sliders, currentIndex: $currentIndex)
                 }
@@ -69,7 +69,7 @@ struct HomeView: View {
                         }
                     }
                 }
-                
+
                 Spacer()
             }
             .padding(16)
@@ -97,7 +97,7 @@ struct HomeView: View {
                     .foregroundColor(Color.black222020())
                 }
             }
-            
+
             ToolbarItem(placement: .navigationBarTrailing) {
                 Image("ic_bell")
                     .onTapGesture {
@@ -107,14 +107,12 @@ struct HomeView: View {
         }
         .onAppear {
             getHome()
-//            viewModel.fetchContactItems()
             refreshFcmToken()
         }
     }
-    
+
     func openWhatsApp() {
         let phoneNumber = viewModel.whatsAppContactItem?.Data ?? ""
-        
         if let url = URL(string: "https://wa.me/\(phoneNumber)") {
             UIApplication.shared.open(url)
         }
@@ -129,19 +127,17 @@ extension HomeView {
     func getHome() {
         viewModel.fetchHomeItems()
     }
-}
 
-extension HomeView {
     func refreshFcmToken() {
         Messaging.messaging().token { token, error in
-            if let error = error {
-            } else if let token = token {
-                let params: [String: Any] = [
-                    "id": UserSettings.shared.id ?? "",
-                    "fcmToken": token
-                ]
-                userViewModel.refreshFcmToken(params: params, onsuccess: {
-                    
+            if let token = token {
+                let request = RefreshFcmRequest(
+                    id: UserSettings.shared.id ?? "",
+                    fcmToken: token
+                )
+
+                userViewModel.refreshFcmToken(body: request, onSuccess: {
+                    // النجاح
                 })
             }
         }
@@ -153,6 +149,7 @@ struct Category2: Identifiable {
     let title: String
     let image: String
 }
+
 let sampleCategories: [Category2] = [
     .init(title: "التصميم", image: "design_image"),
     .init(title: "المجال المالي", image: "finance_image"),
@@ -178,7 +175,7 @@ struct SliderView: View {
                         contentMode: .fill
                     )
                     .clipped()
-                    
+
                     LinearGradient(
                         gradient: Gradient(colors: [.black.opacity(0.0), .black.opacity(0.45)]),
                         startPoint: .top, endPoint: .bottom
@@ -214,20 +211,6 @@ struct SliderView: View {
     }
 }
 
-// مثال للاستخدام في الـ HomeView:
-struct SliderView_Previews: PreviewProvider {
-    static var previews: some View {
-        SliderView(
-            items: [
-                SliderItem(id: "1", image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb", title: "عنوان 1", description: "وصف سريع"),
-                SliderItem(id: "2", image: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308", title: "عنوان 2", description: "وصف ثاني")
-            ],
-            currentIndex: .constant(0)
-        )
-    }
-}
-
-// 1. تعريف فيو الكاتيجوري كارد
 struct CategoryCardView: View {
     let category: CategoryItem
     let onTap: () -> Void

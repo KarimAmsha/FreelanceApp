@@ -1,635 +1,205 @@
-//
-//  UserViewModel.swift
-//  Wishy
-//
-//  Created by Karim Amsha on 27.04.2024.
-//
-
 import SwiftUI
 import Combine
-import Firebase
+import Foundation
 
-class UserViewModel: ObservableObject {
+@MainActor
+final class UserViewModel: ObservableObject, GenericAPILoadable {
+    // MARK: - Published
     @Published var user: User?
     @Published var addressBook: [AddressItem]?
-//    @Published var reviewItems: [ReviewItems] = []
-    private var cancellables = Set<AnyCancellable>()
-    @Published var errorTitle: String = LocalizedStringKey.error
-    @Published var errorMessage: String?
-    @Published var isLoading: Bool = false
-    private let errorHandling: ErrorHandling
-    private let dataProvider = DataProvider.shared
-    @Published var uploadProgress: Double? // Use an optional Double
-    @Published var userSettings = UserSettings.shared // Use the shared instance of UserSettings
-    @Published var currentPage = 0
-    @Published var totalPages = 1
-    @Published var isFetchingMoreData = false
-    @Published var pagination: Pagination?
-//    @Published var users: [FBUser] = []
-//    @Published var fbUser: FBUser?
-//    @Published var checkPoint: CheckPoint?
+    @Published var state: LoadingState = .idle
+    @Published var uploadProgress: Double?
 
-    init(errorHandling: ErrorHandling) {
-        self.errorHandling = errorHandling
-    }
-    
-    var shouldLoadMoreData: Bool {
-        guard let totalPages = pagination?.totalPages else {
+    // MARK: - Props
+    var appRouter: AppRouter? = nil
+    private let settings = UserSettings.shared
+    private var cancellables = Set<AnyCancellable>()
+    private var token: String? { settings.token }
+
+    // MARK: - Helpers
+    private func tokenGuard() -> Bool {
+        guard let token = token, !token.isEmpty else {
+            failLoading(error: "Token غير متوفر")
             return false
         }
-        
-        return currentPage < totalPages
+        return true
     }
 
-    func updateUploadProgress(newProgress: Double) {
-        uploadProgress = newProgress
+    private func handleUserData(_ user: User?) {
+        guard let user = user else { return }
+        settings.login(user: user, id: user.id ?? "", token: user.token ?? "")
     }
-    
-    func startUpload() {
-        isLoading = false
-        isLoading = true
+
+    func updateUploadProgress(_ value: Double) {
+        uploadProgress = value
     }
-    
-    func finishUpload() {
-        isLoading = false
+
+    // MARK: - Fetch User
+    func fetchUser(onSuccess: @escaping () -> Void = {}) {
+        guard tokenGuard() else { return }
+
+        fetchAPI(endpoint: .getUserProfile(token: token!), responseType: SingleAPIResponse<User>.self) { [weak self] response in
+            self?.user = response.items
+            self?.handleUserData(response.items)
+            self?.finishLoading()
+            onSuccess()
+        }
     }
-    
-    func updateUserData(params: [String: Any], onsuccess: @escaping (String) -> Void) {
-        guard let token = userSettings.token else {
-            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
+
+    // MARK: - Update User
+    func updateUserData(body: UpdateUserRequest, onSuccess: @escaping (String) -> Void) {
+        guard tokenGuard() else { return }
+
+        fetchAPI(endpoint: .updateUserData(body: body, token: token!), responseType: SingleAPIResponse<User>.self) { [weak self] response in
+            self?.user = response.items
+            self?.handleUserData(response.items)
+            self?.finishLoading()
+            onSuccess(response.message)
+        }
+    }
+
+    // MARK: - Addresses
+    func fetchAddresses() {
+        guard tokenGuard() else { return }
+
+        fetchAPI(endpoint: .getAddressList(token: token!), responseType: ArrayAPIResponse<AddressItem>.self) { [weak self] response in
+            self?.addressBook = response.items
+            self?.finishLoading()
+        }
+    }
+
+    func addAddress(body: AddressRequest, onSuccess: @escaping (String) -> Void) {
+        guard tokenGuard() else { return }
+
+        fetchAPI(endpoint: .addAddress(body: body, token: token!), responseType: SingleAPIResponse<AddressItem>.self) {
+            self.finishLoading()
+            onSuccess($0.message)
+        }
+    }
+
+    func updateAddress(body: AddressRequest, onSuccess: @escaping (String) -> Void) {
+        guard tokenGuard() else { return }
+
+        fetchAPI(endpoint: .updateAddress(body: body, token: token!), responseType: SingleAPIResponse<AddressItem>.self) {
+            self.finishLoading()
+            onSuccess($0.message)
+        }
+    }
+
+    func deleteAddress(id: String, onSuccess: @escaping (String) -> Void) {
+        guard tokenGuard() else { return }
+
+        fetchAPI(endpoint: .deleteAddress(id: id, token: token!), responseType: ArrayAPIResponse<AddressItem>.self) {
+            self.finishLoading()
+            onSuccess($0.message)
+        }
+    }
+
+    func fetchAddressByType(type: String) {
+        guard tokenGuard() else { return }
+
+        fetchAPI(endpoint: .getAddressByType(type: type, token: token!), responseType: ArrayAPIResponse<AddressItem>.self) { [weak self] response in
+            self?.addressBook = response.items
+            self?.finishLoading()
+        }
+    }
+
+    // MARK: - Complaint
+    func addComplaint(body: ComplainRequest, onSuccess: @escaping (String) -> Void) {
+        guard tokenGuard() else { return }
+
+        fetchAPI(endpoint: .addComplain(body: body, token: token!), responseType: SingleAPIResponse<Complain>.self) {
+            self.finishLoading()
+            onSuccess($0.message)
+        }
+    }
+
+    // MARK: - FCM Token
+    func refreshFcmToken(body: RefreshFcmRequest, onSuccess: @escaping () -> Void) {
+        guard tokenGuard() else { return }
+
+        fetchAPI(endpoint: .refreshFcmToken(body: body, token: token!), responseType: SingleAPIResponse<User>.self) { [weak self] response in
+            self?.user = response.items
+            self?.finishLoading()
+            onSuccess()
+        }
+    }
+
+    // MARK: - Update Specialty
+    func updateUserSpecialty(to categoryId: String, onSuccess: @escaping () -> Void) {
+        guard let user = user else {
+            failLoading(error: "تعذر جلب بيانات المستخدم")
             return
         }
 
-        startUpload()
-        errorMessage = nil
-        let endpoint = DataProvider.Endpoint.updateUserData(params: params, token: token)
-        
-        DataProvider.shared.request(endpoint: endpoint, responseType: SingleAPIResponse<User>.self)
-            .sink(receiveCompletion: { completion in
-                switch completion {
-                case .finished:
-                    self.finishUpload()
-                case .failure(let error):
-                    // Use the centralized error handling component
-                    self.handleAPIError(error)
-                    self.finishUpload()
-                }
-            }, receiveValue: { [weak self] (response: SingleAPIResponse<User>) in
-                if response.status {
-                    // Handle the successful response, if needed
-                    self?.user = response.items // The user object
-                    self?.handleUserData()
-                    self?.errorMessage = nil
-                    onsuccess(response.message)
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-                self?.finishUpload()
-            })
-            .store(in: &cancellables)
-    }
+        let req = UpdateUserRequest(
+            email: user.email ?? "",
+            full_name: user.full_name ?? "",
+            lat: user.lat ?? 0,
+            lng: user.lng ?? 0,
+            reg_no: user.reg_no,
+            address: user.address,
+            country: user.country,
+            city: user.city,
+            dob: user.dob,
+            category: categoryId,
+            subcategory: user.subcategory,
+            work: user.work,
+            bio: user.bio,
+            image: user.image,
+            id_image: user.id_image
+        )
 
-    func updateUserDataWithImage(imageData: Data?, additionalParams: [String: Any], onsuccess: @escaping (String) -> Void) {
-        guard let token = userSettings.token else {
-            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-            return
-        }
-        
-        self.updateUploadProgress(newProgress: 0) // Initialize the progress to 0%
-        startUpload()
-        
-        var endpoint: DataProvider.Endpoint
-        var imageFiles: [(Data, String)] = []
-        if let imageData = imageData {
-            endpoint = .updateUserDataWithImage(params: additionalParams, imageData: imageData, token: token)
-            imageFiles.append((imageData, "image"))
-        } else {
-            // In this case, you still want to send a request with additionalParams
-            endpoint = .updateUserDataWithImage(params: additionalParams, imageData: nil, token: token)
-        }
-        
-        dataProvider.requestMultipart(endpoint: endpoint, imageFiles: imageFiles, responseType: SingleAPIResponse<User>.self)
-            .sink(receiveCompletion: { [weak self] completion in
-                switch completion {
-                case .finished:
-                    self?.updateUploadProgress(newProgress: 1.0) // Set progress to 100% when the upload is complete
-                    self?.finishUpload()
-                case .failure(let error):
-                    // Handle the error
-                    self?.handleAPIError(error)
-                    self?.finishUpload()
-                }
-            }, receiveValue: { (response, uploadProgress) in
-                if response.status {
-                    // Handle the successful response, if needed
-                    self.updateUploadProgress(newProgress: uploadProgress) // The upload progress (0.0 to 1.0)
-                    self.user = response.items // The user object
-                    self.handleUserData()
-                    self.errorMessage = nil
-                    onsuccess(response.message)
-                } else {
-                    // Use the centralized error handling component
-                    self.handleAPIError(.customError(message: response.message))
-                    
-                    // Handle status code 405 using ErrorHandler
-                    self.errorHandling.handleStatusCode405(code: response.code, errorMessage: response.message, updateErrorMessage: { errorMessage in
-                        self.errorMessage = errorMessage
-                    }, onLogout: {
-                        self.userSettings.logout()
-                    })
-                }
-                
-            })
-            .store(in: &cancellables)
-    }
-    
-//    func updateUserDataWithImage(token: String, imageFiles: [(Data, String)]?, additionalParams: [String: Any], onsuccess: @escaping (String) -> Void) {
-////        guard let token = userSettings.token else {
-////            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-////            return
-////        }
-//        
-//        self.updateUploadProgress(newProgress: 0) // Initialize the progress to 0%
-//        startUpload()
-//        
-//        var endpoint: DataProvider.Endpoint
-//        endpoint = .updateUserDataWithImage(params: additionalParams, imageFiles: imageFiles, token: token)
-//
-//        dataProvider.requestMultipart(endpoint: endpoint, imageFiles: imageFiles, responseType: SingleAPIResponse<User>.self)
-//            .sink(receiveCompletion: { [weak self] completion in
-//                switch completion {
-//                case .finished:
-//                    self?.updateUploadProgress(newProgress: 1.0) // Set progress to 100% when the upload is complete
-//                    self?.finishUpload()
-//                case .failure(let error):
-//                    // Handle the error
-//                    self?.handleAPIError(error)
-//                    self?.finishUpload()
-//                }
-//            }, receiveValue: { (response, uploadProgress) in
-//                if response.status {
-//                    // Handle the successful response, if needed
-//                    self.updateUploadProgress(newProgress: uploadProgress) // The upload progress (0.0 to 1.0)
-//                    self.user = response.items // The user object
-//                    self.handleUserData()
-//                    self.errorMessage = nil
-//                    onsuccess(response.message)
-//                } else {
-//                    // Use the centralized error handling component
-//                    self.handleAPIError(.customError(message: response.message))
-//                }
-//                
-//            })
-//            .store(in: &cancellables)
-//    }
-    
-    func fetchUserData(onsuccess: @escaping () -> Void) {
-        guard let token = userSettings.token else {
-            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-            return
-        }
-        
-        isLoading = true
-        errorMessage = nil
-        let endpoint = DataProvider.Endpoint.getUserProfile(token: token)
-        
-        DataProvider.shared.request(endpoint: endpoint, responseType: SingleAPIResponse<User>.self)
-            .sink(receiveCompletion: { completion in
-                switch completion {
-                case .finished:
-                    break
-                case .failure(let error):
-                    // Use the centralized error handling component
-                    self.handleAPIError(error)
-                }
-            }, receiveValue: { [weak self] (response: SingleAPIResponse<User>) in
-                if response.status {
-                    self?.user = response.items
-                    self?.errorMessage = nil
-                    onsuccess()
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-                self?.isLoading = false
-            })
-            .store(in: &cancellables)
-    }
-    
-    func addReview(orderID: String, params: [String: Any], onsuccess: @escaping (String) -> Void) {
-        guard let token = userSettings.token else {
-            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-            return
-        }
-        
-        isLoading = true
-        errorMessage = nil
-        let endpoint = DataProvider.Endpoint.addReview(orderID: orderID, params: params, token: token)
-        
-        DataProvider.shared.request(endpoint: endpoint, responseType: SingleAPIResponse<User>.self)
-            .sink(receiveCompletion: { completion in
-                switch completion {
-                case .finished:
-                    break
-                case .failure(let error):
-                    // Use the centralized error handling component
-                    self.handleAPIError(error)
-                }
-            }, receiveValue: { [weak self] (response: SingleAPIResponse<User>) in
-                if response.status {
-                    self?.errorMessage = nil
-                    onsuccess(response.message)
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-                self?.isLoading = false
-            })
-            .store(in: &cancellables)
-    }
-}
-
-extension UserViewModel {
-    func addAddressOther(params: [String: Any], onsuccess: @escaping (String) -> Void) {
-        guard let token = userSettings.token else {
-            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-            return
-        }
-        
-        isLoading = true
-        errorMessage = nil
-        let endpoint = DataProvider.Endpoint.addAddress(params: params, token: token)
-        
-        DataProvider.shared.request(endpoint: endpoint, responseType: SingleAPIResponse<AddressItem>.self)
-            .sink(receiveCompletion: { completion in
-                switch completion {
-                case .finished:
-                    break
-                case .failure(let error):
-                    // Use the centralized error handling component
-                    self.handleAPIError(error)
-                }
-            }, receiveValue: { [weak self] (response: SingleAPIResponse<AddressItem>) in
-                if response.status {
-                    self?.errorMessage = nil
-                    onsuccess(response.message)
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-                self?.isLoading = false
-            })
-            .store(in: &cancellables)
-    }
-    
-    func addAddress(params: [String: Any], onsuccess: @escaping (String) -> Void) {
-        guard let token = userSettings.token else {
-            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-            return
-        }
-        
-        isLoading = true
-        errorMessage = nil
-
-        let endpoint = DataProvider.Endpoint.addAddress(params: params, token: token)
-
-        dataProvider.request(endpoint: endpoint, responseType: SingleAPIResponse<AddressItem>.self) { [weak self] result in
-            self?.isLoading = false
-
-            switch result {
-            case .success(let response):
-                if response.status {
-                    self?.errorMessage = nil
-                    onsuccess(response.message)
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-            case .failure(let error):
-                // Use the centralized error handling component
-                self?.handleAPIError(error)
+        updateUserData(body: req) {_ in 
+            self.fetchUser {
+                onSuccess()
             }
-        }
-    }
-    
-    func getAddressList() {
-        guard let token = userSettings.token else {
-            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-            return
-        }
-        
-        isLoading = true
-        errorMessage = nil
-        
-        let endpoint = DataProvider.Endpoint.getAddressList(token: token)
-        
-        dataProvider.request(endpoint: endpoint, responseType: ArrayAPIResponse<AddressItem>.self) { [weak self] result in
-            self?.isLoading = false
-            
-            switch result {
-            case .success(let response):
-                if response.status {
-                    self?.errorMessage = nil
-                    self?.addressBook = response.items
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-            case .failure(let error):
-                // Use the centralized error handling component
-                self?.handleAPIError(error)
-            }
-        }
-    }
-    
-    func deleteAddress(id: String, onsuccess: @escaping (String) -> Void) {
-        guard let token = userSettings.token else {
-            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-            return
-        }
-        
-        isLoading = true
-        errorMessage = nil
-        
-        let endpoint = DataProvider.Endpoint.deleteAddress(id: id, token: token)
-        
-        dataProvider.request(endpoint: endpoint, responseType: ArrayAPIResponse<AddressItem>.self) { [weak self] result in
-            self?.isLoading = false
-            
-            switch result {
-            case .success(let response):
-                if response.status {
-                    self?.errorMessage = nil
-                    onsuccess(response.message)
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-            case .failure(let error):
-                // Use the centralized error handling component
-                self?.handleAPIError(error)
-            }
-        }
-    }
-    
-    func updateAddress(params: [String: Any], onsuccess: @escaping (String) -> Void) {
-        guard let token = userSettings.token else {
-            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-            return
-        }
-        
-        isLoading = true
-        errorMessage = nil
-
-        let endpoint = DataProvider.Endpoint.updateAddress(params: params, token: token)
-
-        dataProvider.request(endpoint: endpoint, responseType: SingleAPIResponse<AddressItem>.self) { [weak self] result in
-            self?.isLoading = false
-
-            switch result {
-            case .success(let response):
-                if response.status {
-                    self?.errorMessage = nil
-                    onsuccess(response.message)
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-            case .failure(let error):
-                // Use the centralized error handling component
-                self?.handleAPIError(error)
-            }
-        }
-    }
-
-    func getAddressByType(type: String) {
-        guard let token = userSettings.token else {
-            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-            return
-        }
-        
-        isLoading = true
-        errorMessage = nil
-        
-        let endpoint = DataProvider.Endpoint.getAddressByType(type: type, token: token)
-        
-        dataProvider.request(endpoint: endpoint, responseType: ArrayAPIResponse<AddressItem>.self) { [weak self] result in
-            self?.isLoading = false
-            
-            switch result {
-            case .success(let response):
-                if response.status {
-                    self?.errorMessage = nil
-                    self?.addressBook = response.items
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-            case .failure(let error):
-                // Use the centralized error handling component
-                self?.handleAPIError(error)
-            }
-        }
-    }
-    
-    func addComplain(params: [String: Any], onsuccess: @escaping (String) -> Void) {
-        guard let token = userSettings.token else {
-            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-            return
-        }
-
-        isLoading = true
-        errorMessage = nil
-        let endpoint = DataProvider.Endpoint.addComplain(params: params, token: token)
-        
-        dataProvider.request(endpoint: endpoint, responseType: SingleAPIResponse<Complain>.self) { [weak self] result in
-            self?.isLoading = false
-            
-            switch result {
-            case .success(let response):
-                if response.status {
-                    self?.errorMessage = nil
-                    onsuccess(response.message)
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-                self?.isLoading = false
-            case .failure(let error):
-                // Use the centralized error handling component
-                self?.handleAPIError(error)
-            }
-        }
-    }
-    
-//    func getReviews(page: Int?, limit: Int?, id: String) {
-//        guard let token = userSettings.token else {
-//            handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-//            return
-//        }
-//
-//        isFetchingMoreData = true
-//        errorMessage = nil
-//
-//        let endpoint = DataProvider.Endpoint.getRates(page: page, limit: limit, id: id, token: token)
-//        
-//        dataProvider.request(endpoint: endpoint, responseType: PaginationArrayAPIResponse<ReviewItems>.self) { [weak self] result in
-//            guard let self = self else { return }
-//            self.isLoading = false
-//            self.isFetchingMoreData = false
-//            
-//            switch result {
-//            case .success(let response):
-//                if response.status {
-//                    if let items = response.items {
-//                        self.reviewItems.append(contentsOf: items)
-//                        print("nnnn \(self.reviewItems)")
-//                        self.totalPages = response.pagination?.totalPages ?? 1
-//                        self.pagination = response.pagination
-//                    }
-//                    self.errorMessage = nil
-//                } else {
-//                    // Handle API error and update UI
-//                    handleAPIError(.customError(message: response.message))
-//                    isFetchingMoreData = false
-//                }
-//            case .failure(let error):
-//                // Use the centralized error handling component
-//                self.handleAPIError(error)
-//                self.isFetchingMoreData = false
-//            }
-//        }
-//    }
-
-//    func loadMoreReview(id: String, limit: Int?) {
-//        guard !isFetchingMoreData, currentPage < totalPages else {
-//            // Don't fetch more data while a request is already in progress or no more pages available
-//            return
-//        }
-//
-//        currentPage += 1
-//        getReviews(page: currentPage, limit: limit, id: id)
-//    }
-}
-
-extension UserViewModel {
-    func handleAPIError(_ error: APIClient.APIError) {
-        let errorDescription = errorHandling.handleAPIError(error)
-        errorMessage = errorDescription
-    }
-    
-    func handleUserData() {
-        if let user = self.user {
-            UserSettings.shared.login(user: user, id: user.id ?? "", token: user.token ?? "")
         }
     }
 }
 
-extension UserViewModel {
-//    func fetchAllUsers() {
-//        // Fetch users from Firebase and populate the users property
-//        let ref = Database.database().reference()
-//        let usersRef = ref.child("user")
-//
-//        usersRef.observeSingleEvent(of: .value) { snapshot in
-//            var users: [FBUser] = []
-//
-//            for case let child as DataSnapshot in snapshot.children {
-//                let user = FBUser(child)
-//                users.append(user)
-//            }
-//
-//            DispatchQueue.main.async {
-//                self.users = users
-//            }
-//        }
-//    }
-    
-//    func fetchUserDataFromFirebase(userId: String) {
-//        guard !userId.isEmpty else {
-//            return
-//        }
-//        
-//        let ref = Database.database().reference()
-//        
-//        ref.child("user").child(userId).observeSingleEvent(of: .value, with: { snapshot in
-//            if snapshot.exists() {
-//                self.fbUser = FBUser(snapshot)
-//            } else {
-//                self.fbUser = nil
-//            }
-//        })
-//    }
+struct UpdateUserRequest: Encodable {
+    let email: String
+    let full_name: String
+    let lat: Double
+    let lng: Double
+    let reg_no: String?
+    let address: String?
+    let country: String?
+    let city: String?
+    let dob: String?
+    let category: String?
+    let subcategory: String?
+    let work: String?
+    let bio: String?
+    let image: String?
+    let id_image: String?
 }
 
-extension UserViewModel {
-//    func updateUserWithToken(settings: UserSettings, completion: @escaping (String?, Bool) -> Void) {
-//        Messaging.messaging().token { token, error in
-//            if let error = error {
-//                completion("Error: \(error.localizedDescription)", false)
-//            } else if let token = token {
-//                let user = FBUser(id: settings.id ?? "",
-//                                  fcmToken: token,
-//                                  image: settings.user?.image ?? "",
-//                                  lastOnline: 0,
-//                                  name: settings.user?.full_name ?? "",
-//                                  online: false)
-//                
-//                self.updateFBUserData(id: settings.id ?? "", user: user) { errorMsg, status in
-//                    completion(errorMsg, status)
-//                }
-//            }
-//        }
-//    }
-    
-//    func updateFBUserData(id: String, user: FBUser, completion: @escaping (String?, Bool) -> Void) {
-//        guard !id.isEmpty else {
-//            completion("User ID is empty", false)
-//            return
-//        }
-//
-//        Constants.usersRef.child(id).updateChildValues(user.toAnyObject()) { error, _ in
-//            if let error = error {
-//                completion(error.localizedDescription, false)
-//            } else {
-//                completion(nil, true)
-//            }
-//        }
-//    }
+struct AddressRequest: Encodable {
+    let title: String
+    let lat: Double
+    let lng: Double
+    let description: String?
+    let type: String?      // مثل: "personal", "friend"
+    let contact_name: String?
+    let contact_phone: String?
+    let floor: String?
+    let apartment: String?
+    let building: String?
+    let area: String?
+    let city: String?
 }
 
-extension UserViewModel {
-    func refreshFcmToken(params: [String: Any], onsuccess: @escaping () -> Void) {
-        guard let token = userSettings.token else {
-            self.handleAPIError(.customError(message: LocalizedStringKey.tokenError))
-            return
-        }
-        
-        isLoading = true
-        errorMessage = nil
-        let endpoint = DataProvider.Endpoint.refreshFcmToken(params: params, token: token)
-        
-        DataProvider.shared.request(endpoint: endpoint, responseType: SingleAPIResponse<User>.self)
-            .sink(receiveCompletion: { completion in
-                switch completion {
-                case .finished:
-                    break
-                case .failure(let error):
-                    // Use the centralized error handling component
-                    self.handleAPIError(error)
-                }
-            }, receiveValue: { [weak self] (response: SingleAPIResponse<User>) in
-                if response.status {
-                    self?.user = response.items
-                    self?.errorMessage = nil
-                    onsuccess()
-                } else {
-                    // Use the centralized error handling component
-                    self?.handleAPIError(.customError(message: response.message))
-                }
-                self?.isLoading = false
-            })
-            .store(in: &cancellables)
-    }
+struct ComplainRequest: Encodable {
+    let subject: String
+    let message: String
+    let user_id: String?    // في حال مطلوب
+    let order_id: String?   // في حال الشكوى مرتبطة بطلب
 }
+
+struct RefreshFcmRequest: Encodable {
+    let id: String
+    let fcmToken: String
+}
+

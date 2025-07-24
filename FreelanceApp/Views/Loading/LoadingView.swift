@@ -34,3 +34,33 @@ struct LinearProgressView: View {
             .padding()
     }
 }
+
+struct GlobalLoadingView: View {
+    var title: String = "جارٍ التحميل..."
+
+    var body: some View {
+        ZStack {
+            // طبقة غامقة نصف شفافة
+            Color.black.opacity(0.45)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .primary()))
+                    .scaleEffect(1.8)
+
+                Text(title)
+                    .customFont(weight: .medium, size: 16)
+                    .foregroundColor(.primary())
+            }
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.white)
+                    .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 6)
+            )
+        }
+        .transition(.opacity)
+        .animation(.easeInOut(duration: 0.25), value: UUID())
+    }
+}

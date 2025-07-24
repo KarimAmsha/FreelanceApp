@@ -1,3 +1,10 @@
+//
+//  FreelancerListView.swift
+//  FreelanceApp
+//
+//  Created by Karim OTHMAN on 19.07.2025.
+//
+
 import SwiftUI
 import Combine
 
@@ -13,7 +20,6 @@ struct FreelancerListView: View {
     @State private var showFilterSheet = false
     @State private var searchCancellable: AnyCancellable?
 
-    // Constructor يدعم الـ StateObject
     init(categoryId: String, categoryTitle: String, freelancersCount: Int) {
         self.categoryId = categoryId
         self.categoryTitle = categoryTitle
@@ -23,127 +29,142 @@ struct FreelancerListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Search Bar + زر الفلترة
-            HStack(spacing: 12) {
-                TextField("ابحث باسم الفريلانسر", text: $viewModel.searchText)
-                    .padding(10)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(8)
-                    .overlay(
-                        HStack {
-                            Spacer()
-                            Image(systemName: "magnifyingglass")
-                                .foregroundColor(.gray)
-                                .padding(.trailing, 12)
-                        }
-                    )
-                    .onChange(of: viewModel.searchText) { _ in debounceSearch() }
+            buildSearchBar()
 
-                Button(action: { showFilterSheet = true }) {
-                    Image(systemName: "line.3.horizontal.decrease")
-                        .padding()
-                        .foregroundColor(.black151515())
-                        .background(Color.gray.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-                .sheet(isPresented: $showFilterSheet) {
-                    FilterSheetView(viewModel: viewModel)
-                        .presentationDetents([.medium, .large])
-                }
-            }
-            .padding(.horizontal)
-            .padding(.top, 8)
-
-            // النتائج أو التحميل أو "لا يوجد نتائج"
-            if viewModel.isLoading && viewModel.freelancers.isEmpty {
+            if viewModel.state.isLoading && viewModel.freelancers.isEmpty {
                 ProgressView().padding()
             } else if viewModel.freelancers.isEmpty {
-                Text("لا يوجد نتائج.").foregroundColor(.gray).padding()
+                DefaultEmptyView(title: "لا يوجد نتائج")
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 16) {
-                        ForEach(viewModel.freelancers) { freelancer in
-                            Button(action: {
-                                appRouter.navigate(to: .freelancerProfile(freelancer: freelancer))
-                            }) {
-                                FreelancerRowView(freelancer: freelancer)
-                            }
-                            .onAppear {
-                                viewModel.loadMoreIfNeeded(currentItem: freelancer)
-                            }
-                        }
-                        if viewModel.isFetchingMoreData {
-                            ProgressView().padding()
-                        }
-                    }
-                    .padding()
-                }
-                .refreshable { viewModel.refresh() }
+                buildFreelancersList()
             }
+
             Spacer()
         }
         .background(Color.background())
         .navigationBarBackButtonHidden()
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                HStack {
-                    Button {
-                        appRouter.navigateBack()
-                    } label: {
-                        Image(systemName: "chevron.backward")
-                            .foregroundColor(.black)
-                    }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(categoryTitle)
-                            .font(.system(size: 18, weight: .bold))
-                        Text("+\(freelancersCount) فريلانسر")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                }
-            }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Image("ic_bell")
-                    .onTapGesture {
-                        appRouter.navigate(to: .notifications)
-                    }
-            }
-        }
-        .onAppear {
-            // اطلب الموقع إذا لم يكن محدد
-            if locationManager.latitude == 0 || locationManager.longitude == 0 {
-                locationManager.requestLocationOnce()
-            } else {
-                // مرر اللوكيشن للفيو موديل مباشرة
-                viewModel.userLatitude = locationManager.latitude
-                viewModel.userLongitude = locationManager.longitude
-                if viewModel.freelancers.isEmpty {
-                    viewModel.fetchFreelancers(page: 0)
-                }
-            }
-        }
-        .onChange(of: locationManager.latitude) { lat in
-            if lat != 0 {
-                viewModel.userLatitude = lat
-                if viewModel.freelancers.isEmpty {
-                    viewModel.fetchFreelancers(page: 0)
-                }
-            }
-        }
-        .onChange(of: locationManager.longitude) { lng in
-            if lng != 0 {
-                viewModel.userLongitude = lng
-            }
-        }
-        .overlay(
-            MessageAlertObserverView(
-                message: $viewModel.errorMessage,
-                alertType: .constant(.error)
-            )
-        )
+        .toolbar { buildToolbar() }
+        .onAppear(perform: handleOnAppear)
+        .onChange(of: locationManager.latitude, perform: updateLatitude)
+        .onChange(of: locationManager.longitude, perform: updateLongitude)
+        .bindLoadingState(viewModel.state, to: appRouter)
     }
 
-    // Debounce بحث بالاسم
+    @ViewBuilder
+    private func buildSearchBar() -> some View {
+        HStack(spacing: 12) {
+            TextField("ابحث باسم الفريلانسر", text: $viewModel.searchText)
+                .padding(10)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(8)
+                .overlay(
+                    HStack {
+                        Spacer()
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.gray)
+                            .padding(.trailing, 12)
+                    }
+                )
+                .onChange(of: viewModel.searchText) { _ in debounceSearch() }
+
+            Button(action: { showFilterSheet = true }) {
+                Image(systemName: "line.3.horizontal.decrease")
+                    .padding()
+                    .foregroundColor(.black151515())
+                    .background(Color.gray.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .sheet(isPresented: $showFilterSheet) {
+                FilterSheetView(viewModel: viewModel)
+                    .presentationDetents([.medium, .large])
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+    }
+
+    @ViewBuilder
+    private func buildFreelancersList() -> some View {
+        ScrollView {
+            LazyVStack(spacing: 16) {
+                ForEach(viewModel.freelancers) { freelancer in
+                    Button(action: {
+                        appRouter.navigate(to: .freelancerProfile(freelancer: freelancer))
+                    }) {
+                        FreelancerRowView(freelancer: freelancer)
+                    }
+                    .onAppear {
+                        viewModel.loadMoreIfNeeded(currentItem: freelancer)
+                    }
+                }
+
+                if viewModel.isFetchingMoreData {
+                    ProgressView().padding()
+                }
+            }
+            .padding()
+        }
+        .refreshable {
+            viewModel.refresh()
+        }
+    }
+
+    private func handleOnAppear() {
+        if locationManager.latitude == 0 || locationManager.longitude == 0 {
+            locationManager.requestLocationOnce()
+        } else {
+            viewModel.userLatitude = locationManager.latitude
+            viewModel.userLongitude = locationManager.longitude
+            if viewModel.freelancers.isEmpty {
+                viewModel.fetchFreelancers(page: 0)
+            }
+        }
+    }
+
+    private func updateLatitude(_ lat: Double) {
+        if lat != 0 {
+            viewModel.userLatitude = lat
+            if viewModel.freelancers.isEmpty {
+                viewModel.fetchFreelancers(page: 0)
+            }
+        }
+    }
+
+    private func updateLongitude(_ lng: Double) {
+        if lng != 0 {
+            viewModel.userLongitude = lng
+        }
+    }
+
+    @ToolbarContentBuilder
+    private func buildToolbar() -> some ToolbarContent {
+        ToolbarItem(placement: .navigationBarLeading) {
+            HStack {
+                Button {
+                    appRouter.navigateBack()
+                } label: {
+                    Image(systemName: "chevron.backward")
+                        .foregroundColor(.black)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(categoryTitle)
+                        .font(.system(size: 18, weight: .bold))
+                    Text("+\(freelancersCount) فريلانسر")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Image("ic_bell")
+                .onTapGesture {
+                    appRouter.navigate(to: .notifications)
+                }
+        }
+    }
+
     func debounceSearch() {
         searchCancellable?.cancel()
         searchCancellable = Just(())
@@ -152,36 +173,13 @@ struct FreelancerListView: View {
     }
 }
 
-import SwiftUI
-
+// MARK: - FilterSheetView
 struct FilterSheetView: View {
     @ObservedObject var viewModel: FreelancerListViewModel
     @Environment(\.presentationMode) var presentationMode
 
-    let cardBG = Color(.systemGray6)
-
     var body: some View {
         VStack(spacing: 18) {
-//            // زر إغلاق X أعلى يسار الشاشة
-//            HStack {
-//                Button(action: {
-//                    presentationMode.wrappedValue.dismiss()
-//                }) {
-//                    Image(systemName: "xmark")
-//                        .font(.system(size: 22, weight: .bold))
-//                        .foregroundColor(.gray)
-//                        .frame(width: 38, height: 38)
-//                        .background(
-//                            Circle().fill(Color.white)
-//                                .shadow(color: Color.black.opacity(0.07), radius: 3, x: 0, y: 1)
-//                        )
-//                }
-//                .padding(.top, 12)
-//                .padding(.leading, 6)
-//                Spacer()
-//            }
-//
-
             Capsule()
                 .frame(width: 42, height: 5)
                 .foregroundColor(Color.gray.opacity(0.15))
@@ -189,68 +187,62 @@ struct FilterSheetView: View {
 
             Text("تصفية النتائج")
                 .customFont(weight: .bold, size: 14)
-                .padding(.top, 8)
-                .foregroundColor(.black)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text("لتسهيل عملية البحث عليك يجب اختيار الفلاتر المناسبة")
+            Text("اختر الفلاتر التي تناسبك للعثور على المستقل المناسب")
                 .customFont(weight: .regular, size: 12)
                 .foregroundColor(.gray)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, 8)
 
-            // ---- Card Filter ----
             VStack(spacing: 24) {
-//                GridFilterRow(
-//                    title: "المشاريع المكتملة",
-//                    from: $viewModel.completedProjectsFrom,
-//                    to: $viewModel.completedProjectsTo,
-//                    unit: nil
-//                )
                 GridFilterRow(
                     title: "المسافة",
-                    from: $viewModel.distanceFrom,
-                    to: $viewModel.distanceTo,
-                    unit: "كيلو متر"
+                    from: Binding(get: {
+                        viewModel.filters.distanceFrom
+                    }, set: {
+                        viewModel.filters.distanceFrom = $0
+                    }),
+                    to: Binding(get: {
+                        viewModel.filters.distanceTo
+                    }, set: {
+                        viewModel.filters.distanceTo = $0
+                    }),
+                    unit: "كم"
                 )
-//                GridFilterRow(
-//                    title: "عدد الخدمات",
-//                    from: $viewModel.completedServicesFrom,
-//                    to: $viewModel.completedServicesTo,
-//                    unit: nil
-//                )
+
                 GridFilterRow(
                     title: "الأرباح",
-                    from: $viewModel.profitFrom,
-                    to: $viewModel.profitTo,
+                    from: Binding(get: {
+                        viewModel.filters.profitFrom
+                    }, set: {
+                        viewModel.filters.profitFrom = $0
+                    }),
+                    to: Binding(get: {
+                        viewModel.filters.profitTo
+                    }, set: {
+                        viewModel.filters.profitTo = $0
+                    }),
                     unit: nil
                 )
 
-                // التقييم
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("التقييم")
-                        .font(.system(size: 18, weight: .bold))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    HStack(spacing: 16) {
-                        ForEach(0..<5) { idx in
-                            Image(systemName: idx < viewModel.rateTo ? "star.fill" : "star")
-                                .font(.system(size: 28))
-                                .foregroundColor(.yellow)
-                                .scaleEffect(idx < viewModel.rateTo ? 1.2 : 1.0)
-                                .animation(.spring(), value: viewModel.rateTo)
-                                .onTapGesture {
-                                    withAnimation { viewModel.rateTo = idx + 1 }
-                                }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .center)
-                }
-                .padding(.top, 8)
+                GridFilterRow(
+                    title: "التقييم",
+                    from: Binding(get: {
+                        viewModel.filters.rateFrom
+                    }, set: {
+                        viewModel.filters.rateFrom = $0
+                    }),
+                    to: Binding(get: {
+                        viewModel.filters.rateTo
+                    }, set: {
+                        viewModel.filters.rateTo = $0
+                    }),
+                    unit: nil
+                )
             }
             .padding()
             .background(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
 
             Spacer()
 
@@ -266,10 +258,9 @@ struct FilterSheetView: View {
                     .cornerRadius(12)
             }
             .padding(.vertical, 12)
-            .shadow(color: Color.primary().opacity(0.2), radius: 8, x: 0, y: 4)
         }
         .padding(.horizontal)
-        .background(cardBG.ignoresSafeArea())
+        .background(Color(.systemGray6).ignoresSafeArea())
     }
 }
 
@@ -285,17 +276,17 @@ struct GridFilterRow: View {
             HStack {
                 Text(title)
                     .customFont(weight: .medium, size: 14)
-                    .foregroundColor(.black)
                 Spacer()
                 if let unit = unit {
-                    Text("\"\(unit)\"")
+                    Text("(\(unit))")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
             }
+
             HStack(spacing: 10) {
                 FilterInputBox(value: $from, hint: "من")
-                FilterInputBox(value: $to, hint: "الى")
+                FilterInputBox(value: $to, hint: "إلى")
             }
         }
     }
@@ -317,7 +308,6 @@ struct FilterInputBox: View {
             )
             .customFont(weight: .regular, size: 12)
             .multilineTextAlignment(.center)
-            .shadow(color: Color.black.opacity(0.01), radius: 2, x: 0, y: 1)
     }
 }
 
