@@ -14,7 +14,17 @@ struct RegistrationPersonalInfoView: View {
             )
 
             // رقم الجوال
-            MobileView(mobile: $viewModel.phone_number, presentSheet: $presentSheet)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("رقم الهاتف")
+                    .customFont(weight: .medium, size: 14)
+                    .foregroundColor(.black151515())
+                Text(viewModel.getCompletePhoneNumber())
+                    .customFont(weight: .medium, size: 14)
+                    .foregroundColor(.black151515())
+                    .padding()
+                    .background(Color.backgroundFEFEFE())
+                    .cornerRadius(10)
+            }
 
             // الاسم الكامل
             AppTextField(
@@ -108,7 +118,7 @@ struct RegistrationPersonalInfoView: View {
 
     func formatDateForBackend(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MM-dd-yyyy" // ⬅️ المطلوب من الباكند
+        formatter.dateFormat = "MM-dd-yyyy"
         formatter.locale = Locale(identifier: "en_US_POSIX")
         return formatter.string(from: date)
     }

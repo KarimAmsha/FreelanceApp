@@ -230,6 +230,7 @@
 		52D9E6CC2DCB92AA00ED2874 /* MainTabItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D9E6CB2DCB92A800ED2874 /* MainTabItem.swift */; };
 		52D9E6D22DCB956400ED2874 /* ProjectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D9E6D12DCB956400ED2874 /* ProjectsView.swift */; };
 		52D9E6D42DCB957500ED2874 /* AddServiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D9E6D32DCB957500ED2874 /* AddServiceView.swift */; };
+		52EFDFA92E32B34000BFF5F3 /* ReusableAlertModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52EFDFA82E32B33E00BFF5F3 /* ReusableAlertModel.swift */; };
 		52F03F922DC1448F00D11215 /* TamaraProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F03F912DC1448E00D11215 /* TamaraProduct.swift */; };
 		52F0476E2E2ACAAD007251C8 /* NetworkingCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F0476D2E2ACAAC007251C8 /* NetworkingCore.swift */; };
 		52F047702E2AD543007251C8 /* GenericPagination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F0476F2E2AD542007251C8 /* GenericPagination.swift */; };
@@ -438,6 +439,7 @@
 		52D9E6CB2DCB92A800ED2874 /* MainTabItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabItem.swift; sourceTree = "<group>"; };
 		52D9E6D12DCB956400ED2874 /* ProjectsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsView.swift; sourceTree = "<group>"; };
 		52D9E6D32DCB957500ED2874 /* AddServiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddServiceView.swift; sourceTree = "<group>"; };
+		52EFDFA82E32B33E00BFF5F3 /* ReusableAlertModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReusableAlertModel.swift; sourceTree = "<group>"; };
 		52F03F912DC1448E00D11215 /* TamaraProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TamaraProduct.swift; sourceTree = "<group>"; };
 		52F0476D2E2ACAAC007251C8 /* NetworkingCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkingCore.swift; sourceTree = "<group>"; };
 		52F0476F2E2AD542007251C8 /* GenericPagination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenericPagination.swift; sourceTree = "<group>"; };
@@ -765,6 +767,7 @@
 		1ECC95102BDD17AD002BFE54 /* Alerts */ = {
 			isa = PBXGroup;
 			children = (
+				52EFDFA82E32B33E00BFF5F3 /* ReusableAlertModel.swift */,
 				52C6AD592DCA3E4C00D0A672 /* AppMessageBannerView.swift */,
 				527E2FF02E1A7A35009BD0C8 /* AdvancedProgressView.swift */,
 				527E2FEE2E1A7474009BD0C8 /* ProgressOverlayView.swift */,
@@ -1285,6 +1288,7 @@
 				1E2804422C0634450021DFB0 /* Supplier.swift in Sources */,
 				1EA740582BFBCDFE0028AAD0 /* Products.swift in Sources */,
 				1E479B312C4D881B006130E1 /* WhatsApp.swift in Sources */,
+				52EFDFA92E32B34000BFF5F3 /* ReusableAlertModel.swift in Sources */,
 				1ECC95182BDD17FA002BFE54 /* FloatingPickerView.swift in Sources */,
 				5267FAC92DCD42650063AF67 /* ChatListViewModel.swift in Sources */,
 				52A916862E156447002C8668 /* Freelancer.swift in Sources */,

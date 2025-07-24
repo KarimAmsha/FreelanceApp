@@ -62,6 +62,7 @@ final class AppRouter: ObservableObject {
         message: String? = nil,
         okTitle: String = "موافق",
         cancelTitle: String = "رجوع",
+        type: AlertType = .default,
         onOK: @escaping () -> Void,
         onCancel: (() -> Void)? = nil
     ) {
@@ -70,6 +71,7 @@ final class AppRouter: ObservableObject {
             message: message,
             okTitle: okTitle,
             cancelTitle: cancelTitle,
+            type: type,
             onOK: onOK,
             onCancel: onCancel
         )
@@ -105,91 +107,3 @@ extension View {
     }
 }
 
-import SwiftUI
-
-struct ReusableAlertModel: Identifiable {
-    let id = UUID()
-
-    let title: String
-    let message: String?
-    let okTitle: String
-    let cancelTitle: String
-    let onOK: () -> Void
-    let onCancel: (() -> Void)?
-}
-
-struct AppCustomAlertView: View {
-    let alert: ReusableAlertModel
-    @Binding var isPresented: Bool
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Text(alert.title)
-                .font(.headline)
-                .multilineTextAlignment(.center)
-
-            if let message = alert.message {
-                Text(message)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-            }
-
-            HStack(spacing: 12) {
-                Button(action: {
-                    alert.onCancel?()
-                    isPresented = false
-                }) {
-                    Text(alert.cancelTitle)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.gray.opacity(0.2))
-                        .foregroundColor(.black)
-                        .cornerRadius(10)
-                }
-
-                Button(action: {
-                    alert.onOK()
-                    isPresented = false
-                }) {
-                    Text(alert.okTitle)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.accentColor)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                }
-            }
-        }
-        .padding()
-        .background(.ultraThinMaterial)
-        .cornerRadius(20)
-        .padding(.horizontal, 40)
-        .shadow(radius: 10)
-    }
-}
-
-extension View {
-    func appAlert(using router: AppRouter) -> some View {
-        self.overlay(
-            Group {
-                if let alert = router.alertModel {
-                    ZStack {
-                        Color.black.opacity(0.4)
-                            .ignoresSafeArea()
-                            .onTapGesture {
-                                router.dismissAlert()
-                            }
-
-                        AppCustomAlertView(alert: alert, isPresented: Binding(
-                            get: { router.alertModel != nil },
-                            set: { newVal in if !newVal { router.dismissAlert() } }
-                        ))
-                    }
-                    .transition(.opacity)
-                    .animation(.easeInOut, value: router.alertModel != nil)
-                }
-            }
-        )
-    }
-}

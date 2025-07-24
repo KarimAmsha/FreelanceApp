@@ -139,6 +139,7 @@ struct ProfileView: View {
             message: "سيتم تسجيل خروجك من التطبيق.",
             okTitle: "تسجيل الخروج",
             cancelTitle: "رجوع",
+            type: .logout,
             onOK: {
                 authViewModel.logoutUser {
                     appRouter.show(.success, message: "تم تسجيل الخروج بنجاح")
@@ -157,8 +158,9 @@ struct ProfileView: View {
         appRouter.showAlert(
             title: "حذف الحساب نهائيًا",
             message: "هل أنت متأكد أنك تريد حذف حسابك؟ سيتم فقد جميع بياناتك ولن تستطيع استرجاعها!",
-            okTitle: "نعم، احذف الحساب",
+            okTitle: "احذف الحساب",
             cancelTitle: "تراجع",
+            type: .destructive,
             onOK: {
                 authViewModel.deleteAccount {
                     appRouter.show(.success, message: "تم حذف الحساب بنجاح")
