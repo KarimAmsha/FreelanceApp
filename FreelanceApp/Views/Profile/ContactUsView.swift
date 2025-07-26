@@ -51,6 +51,8 @@ struct ContactUsView: View {
                     .frame(minHeight: geometry.size.height)
                 }
                 .padding(24)
+                
+                Spacer()
             }
             .navigationBarBackButtonHidden()
             .background(Color.background())
@@ -109,19 +111,7 @@ struct ContactUsView: View {
         )
 
         viewModel.addComplain(body: request) { message in
-            showSuccessMessage(message)
         }
-    }
-
-    func showSuccessMessage(_ message: String) {
-        appRouter.showAlert(
-            title: "خطأ",
-            message: message,
-            okTitle: "تم",
-            cancelTitle: "رجوع",
-            onOK: {},
-            onCancel: {}
-        )
     }
 }
 

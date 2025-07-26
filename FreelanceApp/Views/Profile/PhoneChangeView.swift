@@ -12,7 +12,7 @@ struct PhoneChangeView: View {
                 if vm.step == .enterOldPhone {
                     VStack(alignment: .leading, spacing: 18) {
                         MobileView(
-                            mobile: $vm.oldPhone,
+                            mobile: .constant(vm.getOldPhoneWithoutCode()),
                             presentSheet: .constant(false),
                             countryPatternPalceholder: "5# ### ####"
                         )

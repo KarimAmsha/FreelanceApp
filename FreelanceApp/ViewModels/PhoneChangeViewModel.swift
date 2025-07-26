@@ -201,6 +201,18 @@ class PhoneChangeViewModel: ObservableObject, GenericAPILoadable {
     func resendNewOtp() {
         resendOldOtp()
     }
+    
+    func getOldPhoneWithoutCode() -> String {
+        let full = UserSettings.shared.user?.phone_number ?? ""
+        let code = countryCode.replacingOccurrences(of: "+", with: "")
+        var number = full.replacingOccurrences(of: "[^0-9]", with: "", options: .regularExpression)
+
+        if number.hasPrefix(code) {
+            number = String(number.dropFirst(code.count))
+        }
+
+        return number
+    }
 }
 
 enum PhoneChangeStep {

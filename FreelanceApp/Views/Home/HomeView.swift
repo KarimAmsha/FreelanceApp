@@ -41,35 +41,31 @@ struct HomeView: View {
                     SliderView(items: sliders, currentIndex: $currentIndex)
                 }
 
-                if viewModel.isLoading {
-                    LoadingView()
-                } else {
-                    ScrollView(showsIndicators: false) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("البحث بالتخصص")
-                                .font(.system(size: 16, weight: .bold))
-                                .padding()
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("البحث بالتخصص")
+                            .font(.system(size: 16, weight: .bold))
+                            .padding()
 
-                            if let categories = viewModel.homeItems?.category, !categories.isEmpty {
-                                LazyVGrid(columns: Array(repeating: .init(.flexible(), spacing: 16), count: 2), spacing: 16) {
-                                    ForEach(categories) { category in
-                                        CategoryCardView(category: category) {
-                                            appRouter.navigate(to: .freelancerList(
-                                                categoryId: category.id,
-                                                categoryTitle: category.title,
-                                                freelancersCount: category.users ?? 0
-                                            ))
-                                        }
+                        if let categories = viewModel.homeItems?.category, !categories.isEmpty {
+                            LazyVGrid(columns: Array(repeating: .init(.flexible(), spacing: 16), count: 2), spacing: 16) {
+                                ForEach(categories) { category in
+                                    CategoryCardView(category: category) {
+                                        appRouter.navigate(to: .freelancerList(
+                                            categoryId: category.id,
+                                            categoryTitle: category.title,
+                                            freelancersCount: category.users ?? 0
+                                        ))
                                     }
                                 }
-                                .padding(.horizontal)
-                            } else {
-                                DefaultEmptyView(title: LocalizedStringKey.noDataFound)
                             }
+                            .padding(.horizontal)
+                        } else {
+                            DefaultEmptyView(title: LocalizedStringKey.noDataFound)
                         }
                     }
                 }
-
+                
                 Spacer()
             }
             .padding(16)
@@ -77,6 +73,7 @@ struct HomeView: View {
             .frame(minHeight: geometry.size.height)
         }
         .background(Color.background())
+        .bindLoadingState(viewModel.state, to: appRouter)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 HStack {
@@ -227,7 +224,7 @@ struct CategoryCardView: View {
             )
             Text(category.title)
                 .font(.system(size: 14, weight: .semibold))
-            Text("+\(category.users ?? 0) فريلانسر")
+            Text("\(category.users ?? 0) فريلانسر")
                 .font(.system(size: 12))
                 .foregroundColor(.gray)
         }

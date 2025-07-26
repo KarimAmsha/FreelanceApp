@@ -126,8 +126,9 @@ final class UserViewModel: ObservableObject, GenericAPILoadable {
     }
 
     // MARK: - Update Specialty
-    func updateUserSpecialty(to categoryId: String, onSuccess: @escaping () -> Void) {
-        guard let user = user else {
+    // MARK: - Update Specialty (Main or Sub)
+    func updateUserSpecialty(to categoryId: String? = nil, subCategoryId: String? = nil, onSuccess: @escaping () -> Void) {
+        guard let user = UserSettings.shared.user else {
             failLoading(error: "تعذر جلب بيانات المستخدم")
             return
         }
@@ -142,15 +143,15 @@ final class UserViewModel: ObservableObject, GenericAPILoadable {
             country: user.country,
             city: user.city,
             dob: user.dob,
-            category: categoryId,
-            subcategory: user.subcategory,
+            category: categoryId ?? user.mainSpecialtyId,
+            subcategory: subCategoryId ?? user.subcategory,
             work: user.work,
             bio: user.bio,
             image: user.image,
             id_image: user.id_image
         )
 
-        updateUserData(body: req) {_ in 
+        updateUserData(body: req) { _ in
             self.fetchUser {
                 onSuccess()
             }

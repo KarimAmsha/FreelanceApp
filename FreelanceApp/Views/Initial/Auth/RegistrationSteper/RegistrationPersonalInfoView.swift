@@ -18,12 +18,15 @@ struct RegistrationPersonalInfoView: View {
                 Text("رقم الهاتف")
                     .customFont(weight: .medium, size: 14)
                     .foregroundColor(.black151515())
-                Text(viewModel.getCompletePhoneNumber())
-                    .customFont(weight: .medium, size: 14)
-                    .foregroundColor(.black151515())
-                    .padding()
-                    .background(Color.backgroundFEFEFE())
-                    .cornerRadius(10)
+                HStack {
+                    Text(viewModel.getCompletePhoneNumber())
+                        .customFont(weight: .medium, size: 14)
+                        .foregroundColor(.black151515())
+                    Spacer()
+                }
+                .padding()
+                .background(Color.backgroundFEFEFE())
+                .cornerRadius(10)
             }
 
             // الاسم الكامل

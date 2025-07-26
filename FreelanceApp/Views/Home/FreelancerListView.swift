@@ -31,10 +31,12 @@ struct FreelancerListView: View {
         VStack(spacing: 0) {
             buildSearchBar()
 
-            if viewModel.state.isLoading && viewModel.freelancers.isEmpty {
-                ProgressView().padding()
-            } else if viewModel.freelancers.isEmpty {
-                DefaultEmptyView(title: "لا يوجد نتائج")
+            if viewModel.freelancers.isEmpty {
+                if viewModel.searchText.isEmpty && viewModel.filters.isDefault {
+                    DefaultEmptyView(title: "لم يتم العثور على مستقلين في هذا التخصص بعد")
+                } else {
+                    DefaultEmptyView(title: "لا يوجد نتائج مطابقة للبحث أو الفلاتر")
+                }
             } else {
                 buildFreelancersList()
             }
@@ -76,7 +78,7 @@ struct FreelancerListView: View {
             }
             .sheet(isPresented: $showFilterSheet) {
                 FilterSheetView(viewModel: viewModel)
-                    .presentationDetents([.medium, .large])
+                    .presentationDetents([.large])
             }
         }
         .padding(.horizontal)
@@ -173,144 +175,6 @@ struct FreelancerListView: View {
     }
 }
 
-// MARK: - FilterSheetView
-struct FilterSheetView: View {
-    @ObservedObject var viewModel: FreelancerListViewModel
-    @Environment(\.presentationMode) var presentationMode
-
-    var body: some View {
-        VStack(spacing: 18) {
-            Capsule()
-                .frame(width: 42, height: 5)
-                .foregroundColor(Color.gray.opacity(0.15))
-                .padding(.top, 8)
-
-            Text("تصفية النتائج")
-                .customFont(weight: .bold, size: 14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text("اختر الفلاتر التي تناسبك للعثور على المستقل المناسب")
-                .customFont(weight: .regular, size: 12)
-                .foregroundColor(.gray)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(spacing: 24) {
-                GridFilterRow(
-                    title: "المسافة",
-                    from: Binding(get: {
-                        viewModel.filters.distanceFrom
-                    }, set: {
-                        viewModel.filters.distanceFrom = $0
-                    }),
-                    to: Binding(get: {
-                        viewModel.filters.distanceTo
-                    }, set: {
-                        viewModel.filters.distanceTo = $0
-                    }),
-                    unit: "كم"
-                )
-
-                GridFilterRow(
-                    title: "الأرباح",
-                    from: Binding(get: {
-                        viewModel.filters.profitFrom
-                    }, set: {
-                        viewModel.filters.profitFrom = $0
-                    }),
-                    to: Binding(get: {
-                        viewModel.filters.profitTo
-                    }, set: {
-                        viewModel.filters.profitTo = $0
-                    }),
-                    unit: nil
-                )
-
-                GridFilterRow(
-                    title: "التقييم",
-                    from: Binding(get: {
-                        viewModel.filters.rateFrom
-                    }, set: {
-                        viewModel.filters.rateFrom = $0
-                    }),
-                    to: Binding(get: {
-                        viewModel.filters.rateTo
-                    }, set: {
-                        viewModel.filters.rateTo = $0
-                    }),
-                    unit: nil
-                )
-            }
-            .padding()
-            .background(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 18))
-
-            Spacer()
-
-            Button(action: {
-                viewModel.refresh()
-                presentationMode.wrappedValue.dismiss()
-            }) {
-                Text("تطبيق الفلاتر")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(Color.primary())
-                    .cornerRadius(12)
-            }
-            .padding(.vertical, 12)
-        }
-        .padding(.horizontal)
-        .background(Color(.systemGray6).ignoresSafeArea())
-    }
-}
-
-// MARK: - عنصر جريد من خانتين
-struct GridFilterRow: View {
-    var title: String
-    @Binding var from: Int
-    @Binding var to: Int
-    var unit: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(title)
-                    .customFont(weight: .medium, size: 14)
-                Spacer()
-                if let unit = unit {
-                    Text("(\(unit))")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
-            }
-
-            HStack(spacing: 10) {
-                FilterInputBox(value: $from, hint: "من")
-                FilterInputBox(value: $to, hint: "إلى")
-            }
-        }
-    }
-}
-
-// MARK: - مربع إدخال احترافي
-struct FilterInputBox: View {
-    @Binding var value: Int
-    var hint: String
-
-    var body: some View {
-        TextField(hint, value: $value, formatter: NumberFormatter())
-            .keyboardType(.numberPad)
-            .frame(width: 70, height: 44)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.gray.opacity(0.18), lineWidth: 1)
-                    .background(Color.white.cornerRadius(12))
-            )
-            .customFont(weight: .regular, size: 12)
-            .multilineTextAlignment(.center)
-    }
-}
-
 // --- Example Preview
 #Preview {
     FreelancerListView(categoryId: "65ad02286942426c04e13994", categoryTitle: "التصميم", freelancersCount: 1500)
@@ -370,5 +234,153 @@ struct FreelancerRowView: View {
         .background(Color.white)
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+    }
+}
+
+// MARK: - FilterSheetView
+struct FilterSheetView: View {
+    @ObservedObject var viewModel: FreelancerListViewModel
+    @Environment(\.presentationMode) var presentationMode
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Capsule()
+                .frame(width: 42, height: 5)
+                .foregroundColor(Color.gray.opacity(0.15))
+                .padding(.top, 8)
+
+            Text("تصفية النتائج")
+                .customFont(weight: .bold, size: 14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text("اختر الفلاتر التي تناسبك للعثور على المستقل المناسب")
+                .customFont(weight: .regular, size: 12)
+                .foregroundColor(.gray)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(spacing: 24) {
+                GridFilterRow(
+                    title: "المسافة",
+                    from: Binding(
+                        get: { viewModel.filters.distanceFrom },
+                        set: { viewModel.filters.distanceFrom = $0 }
+                    ),
+                    to: Binding(
+                        get: { viewModel.filters.distanceTo },
+                        set: { viewModel.filters.distanceTo = $0 }
+                    ),
+                    unit: "كم"
+                )
+
+                GridFilterRow(
+                    title: "الأرباح",
+                    from: Binding(
+                        get: { viewModel.filters.profitFrom },
+                        set: { viewModel.filters.profitFrom = $0 }
+                    ),
+                    to: Binding(
+                        get: { viewModel.filters.profitTo },
+                        set: { viewModel.filters.profitTo = $0 }
+                    ),
+                    unit: "ر.س"
+                )
+
+                GridFilterRow(
+                    title: "التقييم",
+                    from: Binding(
+                        get: { viewModel.filters.rateFrom },
+                        set: { viewModel.filters.rateFrom = $0 }
+                    ),
+                    to: Binding(
+                        get: { viewModel.filters.rateTo },
+                        set: { viewModel.filters.rateTo = $0 }
+                    ),
+                    unit: nil
+                )
+            }
+            .padding()
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+
+            Spacer()
+
+            // زر تطبيق الفلاتر
+            Button(action: {
+                presentationMode.wrappedValue.dismiss()
+                viewModel.refresh()
+            }) {
+                Text("تطبيق الفلاتر")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .background(Color.primary())
+                    .cornerRadius(12)
+            }
+
+            // زر إعادة التصفية
+            Button(action: {
+                viewModel.filters.reset()
+                viewModel.refresh()
+                presentationMode.wrappedValue.dismiss()
+            }) {
+                Text("إعادة التصفية")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.red)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red, lineWidth: 1))
+            }
+            .padding(.top, 4)
+        }
+        .padding(.horizontal)
+        .background(Color(.systemGray6).ignoresSafeArea())
+    }
+}
+
+// MARK: - GridFilterRow
+struct GridFilterRow: View {
+    var title: String
+    @Binding var from: Int
+    @Binding var to: Int
+    var unit: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(title)
+                    .customFont(weight: .medium, size: 14)
+                Spacer()
+                if let unit = unit {
+                    Text("(\(unit))")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+            }
+
+            HStack(spacing: 10) {
+                FilterInputBox(value: $from, hint: "من")
+                FilterInputBox(value: $to, hint: "إلى")
+            }
+        }
+    }
+}
+
+// MARK: - FilterInputBox
+struct FilterInputBox: View {
+    @Binding var value: Int
+    var hint: String
+
+    var body: some View {
+        TextField(hint, value: $value, formatter: NumberFormatter())
+            .keyboardType(.numberPad)
+            .frame(width: 70, height: 44)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.gray.opacity(0.18), lineWidth: 1)
+                    .background(Color.white.cornerRadius(12))
+            )
+            .customFont(weight: .regular, size: 12)
+            .multilineTextAlignment(.center)
     }
 }

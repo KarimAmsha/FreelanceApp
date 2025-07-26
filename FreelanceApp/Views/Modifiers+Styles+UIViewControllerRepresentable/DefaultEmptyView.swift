@@ -9,26 +9,54 @@ import SwiftUI
 
 struct DefaultEmptyView: View {
     let title: String
-    
+    let subtitle: String?
+
+    init(title: String, subtitle: String? = nil) {
+        self.title = title
+        self.subtitle = subtitle
+    }
+
     var body: some View {
-        VStack(alignment: .center, spacing: 10) {
+        VStack(spacing: 24) {
             Spacer()
-            
-            Image("ic_logo")
-                .renderingMode(.template)
+
+            Image(systemName: "tray")
                 .resizable()
-                .frame(width: 85, height: 81)
-                .foregroundColor(.gray)
-            
-            Text(title)
-                .customFont(weight: .bold, size: 14)
-                .foregroundColor(.gray)
+                .scaledToFit()
+                .frame(width: 80, height: 80)
+                .foregroundColor(.gray.opacity(0.4))
+
+            VStack(spacing: 8) {
+                Text(title)
+                    .customFont(weight: .bold, size: 18)
+                    .foregroundColor(.primaryBlack())
+                    .multilineTextAlignment(.center)
+
+                if let subtitle = subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .customFont(weight: .regular, size: 14)
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
+            }
 
             Spacer()
         }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
 #Preview {
-    DefaultEmptyView(title: LocalizedStringKey.noOrdersFound)
+    Group {
+        DefaultEmptyView(
+            title: "لا توجد نتائج حالياً"
+        )
+
+        DefaultEmptyView(
+            title: "لا توجد نتائج",
+            subtitle: "يمكنك المحاولة لاحقًا أو تحديث الصفحة لرؤية البيانات الجديدة."
+        )
+    }
 }

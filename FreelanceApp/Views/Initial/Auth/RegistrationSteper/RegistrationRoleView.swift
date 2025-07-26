@@ -32,15 +32,15 @@ struct RegistrationRoleView: View {
                     icon: "person.fill",
                     title: "مقدم خدمة",
                     description: "ستكون قادرًا على عرض أعمالك وتلقي العروض من العملاء عبر المنصة.",
-                    selected: selectedRole == .company
-                ) { selectedRole = .company }
+                    selected: selectedRole == .personal
+                ) { selectedRole = .personal }
 
                 RoleCardView(
                     icon: "building.2.fill",
                     title: "صاحب مشاريع",
                     description: "سنساعدك في اختيار أفضل مقدمين الخدمات والحصول على خدمة مميزة",
-                    selected: selectedRole == .personal
-                ) { selectedRole = .personal }
+                    selected: selectedRole == .company
+                ) { selectedRole = .company }
             }
         }
         .padding()

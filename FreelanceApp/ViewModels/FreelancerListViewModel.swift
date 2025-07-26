@@ -60,20 +60,46 @@ class FreelancerListViewModel: ObservableObject, GenericAPILoadable, Paginatable
 
         startLoading()
 
-        let body = FreelancerSearchRequest(
-            category: filters.categoryId,
-            long: userLongitude,
-            lat: userLatitude,
-            distance_from: filters.distanceFrom,
-            distance_to: filters.distanceTo,
-            rate_from: filters.rateFrom,
-            rate_to: filters.rateTo,
-            profit_from: filters.profitFrom,
-            profit_to: filters.profitTo,
-            name: searchText.isEmpty ? nil : searchText
-        )
+        // الحالة 1: أول مرة تحميل بدون بحث أو فلتر
+        let isInitialLoad = currentPage == 0 && searchText.isEmpty && filters.isDefault
 
-        let endpoint = APIEndpoint.searchFreelancers(page: page, limit: 10, body: body, token: token!)
+        let body: FreelancerSearchRequest
+
+        if isInitialLoad {
+            body = FreelancerSearchRequest(
+                category: filters.categoryId,
+                long: userLongitude,
+                lat: userLatitude,
+                distance_from: 0,
+                distance_to: 0,
+                rate_from: 0,
+                rate_to: 0,
+                profit_from: 0,
+                profit_to: 0,
+                name: nil
+            )
+        } else {
+            // فلترة أو بحث
+            body = FreelancerSearchRequest(
+                category: filters.categoryId,
+                long: userLongitude,
+                lat: userLatitude,
+                distance_from: filters.distanceFrom,
+                distance_to: filters.distanceTo,
+                rate_from: filters.rateFrom,
+                rate_to: filters.rateTo,
+                profit_from: filters.profitFrom,
+                profit_to: filters.profitTo,
+                name: searchText.isEmpty ? nil : searchText
+            )
+        }
+
+        let endpoint = APIEndpoint.searchFreelancers(
+            page: page,
+            limit: 10,
+            body: body,
+            token: token!
+        )
 
         fetchAPI(endpoint: endpoint, responseType: ArrayAPIResponse<Freelancer>.self) { [weak self] response in
             guard let self = self else { return }
@@ -109,3 +135,4 @@ class FreelancerListViewModel: ObservableObject, GenericAPILoadable, Paginatable
         APIClient.shared.cancelRequest()
     }
 }
+

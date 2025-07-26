@@ -17,7 +17,7 @@ struct MainView: View {
             MainTabItem(page: .projects, iconSystemName: "briefcase", title: "المشاريع"),
             MainTabItem(page: .more, iconSystemName: "line.3.horizontal", title: "المزيد")
         ]
-        if settings.userRole == .company {
+        if settings.userRole == .personal {
             items.insert(MainTabItem(page: .addService, iconSystemName: "plus.circle", title: "إضافة خدمة"), at: 2)
         }
         return items

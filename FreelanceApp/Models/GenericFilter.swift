@@ -56,3 +56,15 @@ struct FreelancerFilter: BaseFilter {
         ]
     }
 }
+
+extension FreelancerFilter {
+    var isDefault: Bool {
+        return distanceFrom == 0 &&
+               distanceTo == 1000 &&
+               rateFrom == 0 &&
+               rateTo == 5 &&
+               profitFrom == 0 &&
+               profitTo == 10
+    }
+}
+
