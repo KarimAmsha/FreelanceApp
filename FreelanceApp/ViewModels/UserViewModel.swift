@@ -10,6 +10,15 @@ final class UserViewModel: ObservableObject, GenericAPILoadable {
     @Published var state: LoadingState = .idle
     @Published var uploadProgress: Double?
 
+    // MARK: - Editable Fields
+    @Published var name: String = ""
+    @Published var email: String = ""
+    @Published var selectedRole: UserRole = .personal
+    @Published var reg_no: String = ""
+    @Published var dob: String = ""
+    @Published var dobDate: Date? = nil
+    @Published var bio: String = ""
+
     // MARK: - Props
     var appRouter: AppRouter? = nil
     private let settings = UserSettings.shared
@@ -27,7 +36,25 @@ final class UserViewModel: ObservableObject, GenericAPILoadable {
 
     private func handleUserData(_ user: User?) {
         guard let user = user else { return }
+
         settings.login(user: user, id: user.id ?? "", token: user.token ?? "")
+
+        if let type = user.register_type, let role = UserRole(rawValue: type) {
+            selectedRole = role
+        } else {
+            selectedRole = .personal
+        }
+
+        name = user.full_name ?? ""
+        email = user.email ?? ""
+        reg_no = user.reg_no ?? ""
+        dob = user.dob ?? ""
+        bio = user.bio ?? ""
+
+        if let dobString = user.dob,
+           let parsedDate = DateFormatter.iso8601WithZ.date(from: dobString) {
+            self.dobDate = parsedDate
+        }
     }
 
     func updateUploadProgress(_ value: Double) {
@@ -125,7 +152,6 @@ final class UserViewModel: ObservableObject, GenericAPILoadable {
         }
     }
 
-    // MARK: - Update Specialty
     // MARK: - Update Specialty (Main or Sub)
     func updateUserSpecialty(to categoryId: String? = nil, subCategoryId: String? = nil, onSuccess: @escaping () -> Void) {
         guard let user = UserSettings.shared.user else {

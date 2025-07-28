@@ -39,12 +39,36 @@ class NotificationsViewModel: ObservableObject, GenericAPILoadable, Paginatable 
         notificationsItems = []
     }
 
+    // MARK: - Loading Helpers
+    func startLoading() {
+        state = .loading
+    }
+
+    func finishLoading(message: String? = nil) {
+        state = .success(message: message)
+    }
+
+    func failLoading(error: String) {
+        isFetchingMoreData = false
+        state = .failure(error: error)
+    }
+
+    func shouldStartLoading() -> Bool {
+        if state.isLoading { return false }
+        return true
+    }
+
+    func resetState() {
+        state = .idle
+    }
+
     // MARK: - Fetch
     func fetchNotificationsItems(page: Int = 0) {
         guard tokenGuard() else { return }
         if page == 0 { resetPagination() }
 
         isFetchingMoreData = true
+        startLoading()
 
         fetchAPI(
             endpoint: .getNotifications(page: page, limit: 20, token: token!),
@@ -127,4 +151,4 @@ class NotificationsViewModel: ObservableObject, GenericAPILoadable, Paginatable 
             completion(response)
         }
     }
-} 
+}

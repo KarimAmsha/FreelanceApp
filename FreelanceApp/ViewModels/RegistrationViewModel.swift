@@ -207,6 +207,13 @@ class RegistrationViewModel: ObservableObject, GenericAPILoadable {
         }
     }
 
+    func getMainCategories(completion: (() -> Void)? = nil) {
+        fetchAPI(endpoint: .getCategories, responseType: SingleAPIResponse<CategoriesItems>.self) { [weak self] response in
+            self?.allCategories = response.items?.category ?? []
+            completion?()
+        }
+    }
+
     func getMainCategories() {
         fetchAPI(endpoint: .getCategories, responseType: SingleAPIResponse<CategoriesItems>.self) { [weak self] response in
             self?.allCategories = response.items?.category ?? []

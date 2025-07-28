@@ -167,6 +167,10 @@
 		1EEC2BD42BD83E6300975953 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1EEC2BD32BD83E6300975953 /* Assets.xcassets */; };
 		1EEC2BD72BD83E6300975953 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1EEC2BD62BD83E6300975953 /* Preview Assets.xcassets */; };
 		1EFB9B322C1C40B900C15CE4 /* AddUserProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EFB9B312C1C40B900C15CE4 /* AddUserProduct.swift */; };
+		520BEB912E37886B0012ACD3 /* BirthdatePickerFieldForEdit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 520BEB902E37886A0012ACD3 /* BirthdatePickerFieldForEdit.swift */; };
+		521891A42E377DD50031C04A /* CustomPhotoSourceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521891A32E377DD40031C04A /* CustomPhotoSourceSheet.swift */; };
+		521891A82E3780A20031C04A /* ProfileInputFields.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521891A72E3780A10031C04A /* ProfileInputFields.swift */; };
+		521891AC2E37825B0031C04A /* EditProfileCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521891AB2E37825A0031C04A /* EditProfileCardView.swift */; };
 		52294D392DC54FA900C1D456 /* FreelanceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EEC2BCF2BD83E6000975953 /* FreelanceApp.swift */; };
 		5235B18B2DCC93BC009F75FA /* ClientProjectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5235B18A2DCC93BB009F75FA /* ClientProjectsView.swift */; };
 		5235B18F2DCC98BB009F75FA /* SpeedRequestSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5235B18E2DCC98BA009F75FA /* SpeedRequestSheet.swift */; };
@@ -377,6 +381,10 @@
 		1EEC2BD62BD83E6300975953 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		1EFB9B312C1C40B900C15CE4 /* AddUserProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddUserProduct.swift; sourceTree = "<group>"; };
 		2B391A68D56F805841B7EE54 /* Pods_FreelanceApp.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_FreelanceApp.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		520BEB902E37886A0012ACD3 /* BirthdatePickerFieldForEdit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BirthdatePickerFieldForEdit.swift; sourceTree = "<group>"; };
+		521891A32E377DD40031C04A /* CustomPhotoSourceSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomPhotoSourceSheet.swift; sourceTree = "<group>"; };
+		521891A72E3780A10031C04A /* ProfileInputFields.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileInputFields.swift; sourceTree = "<group>"; };
+		521891AB2E37825A0031C04A /* EditProfileCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileCardView.swift; sourceTree = "<group>"; };
 		5235B18A2DCC93BB009F75FA /* ClientProjectsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientProjectsView.swift; sourceTree = "<group>"; };
 		5235B18E2DCC98BA009F75FA /* SpeedRequestSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedRequestSheet.swift; sourceTree = "<group>"; };
 		5235B1902DCC98D6009F75FA /* EditRequestSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditRequestSheet.swift; sourceTree = "<group>"; };
@@ -826,6 +834,10 @@
 		1EDEF6692BE167E400863C10 /* Profile */ = {
 			isa = PBXGroup;
 			children = (
+				520BEB902E37886A0012ACD3 /* BirthdatePickerFieldForEdit.swift */,
+				521891AB2E37825A0031C04A /* EditProfileCardView.swift */,
+				521891A72E3780A10031C04A /* ProfileInputFields.swift */,
+				521891A32E377DD40031C04A /* CustomPhotoSourceSheet.swift */,
 				527E2FF22E1A8713009BD0C8 /* MainSpecialtySelectionView.swift */,
 				52A9167F2E152E22002C8668 /* OTPVerificationView.swift */,
 				52A9167D2E152DF6002C8668 /* PhoneChangeView.swift */,
@@ -1192,6 +1204,7 @@
 				1ECC946D2BDC5B68002BFE54 /* String+Extensions.swift in Sources */,
 				1ECC94EE2BDC6E84002BFE54 /* WelcomeView.swift in Sources */,
 				1EA6D3272C1DB13A007E8AE0 /* WalletData.swift in Sources */,
+				521891AC2E37825B0031C04A /* EditProfileCardView.swift in Sources */,
 				52A916802E152E23002C8668 /* OTPVerificationView.swift in Sources */,
 				52A916882E156499002C8668 /* FreelancerListViewModel.swift in Sources */,
 				1ECC94DA2BDC6094002BFE54 /* SplashView.swift in Sources */,
@@ -1240,6 +1253,7 @@
 				1EDEF66F2BE1747A00863C10 /* EditProfileView.swift in Sources */,
 				1E28042E2C04D3F30021DFB0 /* NotificationRowView.swift in Sources */,
 				1ECC94692BDC5B68002BFE54 /* Text+Extensions.swift in Sources */,
+				521891A82E3780A20031C04A /* ProfileInputFields.swift in Sources */,
 				1ECC94712BDC5B68002BFE54 /* Date+Extensions.swift in Sources */,
 				529993122E2A495B0056CBF9 /* MainTabBar.swift in Sources */,
 				1ECC95332BDD77D3002BFE54 /* OtpFormFieldView.swift in Sources */,
@@ -1294,6 +1308,7 @@
 				52A916862E156447002C8668 /* Freelancer.swift in Sources */,
 				1ECC952D2BDD2C02002BFE54 /* MainView.swift in Sources */,
 				1ECC94792BDC5B8B002BFE54 /* Constants.swift in Sources */,
+				520BEB912E37886B0012ACD3 /* BirthdatePickerFieldForEdit.swift in Sources */,
 				52C6AD722DCA515100D0A672 /* RegistrationIdentityView.swift in Sources */,
 				1EA7405E2BFBEA190028AAD0 /* Special.swift in Sources */,
 				1ECC94CA2BDC5E49002BFE54 /* DismissingKeyboard.swift in Sources */,
@@ -1322,6 +1337,7 @@
 				52A916842E156268002C8668 /* FilterParams.swift in Sources */,
 				5235B1992DCC9A2E009F75FA /* DeliveryDetailsView.swift in Sources */,
 				1E2804302C04D41A0021DFB0 /* NotificationsViewModel.swift in Sources */,
+				521891A42E377DD50031C04A /* CustomPhotoSourceSheet.swift in Sources */,
 				1ECC946B2BDC5B68002BFE54 /* DateFormattable+Extension.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

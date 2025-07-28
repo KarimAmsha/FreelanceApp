@@ -20,7 +20,7 @@ struct FreelancerSearchRequest: Encodable {
 @MainActor
 class FreelancerListViewModel: ObservableObject, GenericAPILoadable, Paginatable {
     var appRouter: AppRouter?
-    
+
     @Published var freelancers: [Freelancer] = []
     @Published var filters = FreelancerFilter()
     @Published var searchText: String = ""
@@ -59,40 +59,39 @@ class FreelancerListViewModel: ObservableObject, GenericAPILoadable, Paginatable
         guard tokenGuard(token) else { return }
 
         startLoading()
+        isFetchingMoreData = true
 
-        // الحالة 1: أول مرة تحميل بدون بحث أو فلتر
         let isInitialLoad = currentPage == 0 && searchText.isEmpty && filters.isDefault
 
-        let body: FreelancerSearchRequest
-
-        if isInitialLoad {
-            body = FreelancerSearchRequest(
-                category: filters.categoryId,
-                long: userLongitude,
-                lat: userLatitude,
-                distance_from: 0,
-                distance_to: 0,
-                rate_from: 0,
-                rate_to: 0,
-                profit_from: 0,
-                profit_to: 0,
-                name: nil
-            )
-        } else {
-            // فلترة أو بحث
-            body = FreelancerSearchRequest(
-                category: filters.categoryId,
-                long: userLongitude,
-                lat: userLatitude,
-                distance_from: filters.distanceFrom,
-                distance_to: filters.distanceTo,
-                rate_from: filters.rateFrom,
-                rate_to: filters.rateTo,
-                profit_from: filters.profitFrom,
-                profit_to: filters.profitTo,
-                name: searchText.isEmpty ? nil : searchText
-            )
-        }
+        let body: FreelancerSearchRequest = {
+            if isInitialLoad {
+                return FreelancerSearchRequest(
+                    category: filters.categoryId,
+                    long: userLongitude,
+                    lat: userLatitude,
+                    distance_from: 0,
+                    distance_to: 0,
+                    rate_from: 0,
+                    rate_to: 0,
+                    profit_from: 0,
+                    profit_to: 0,
+                    name: nil
+                )
+            } else {
+                return FreelancerSearchRequest(
+                    category: filters.categoryId,
+                    long: userLongitude,
+                    lat: userLatitude,
+                    distance_from: filters.distanceFrom,
+                    distance_to: filters.distanceTo,
+                    rate_from: filters.rateFrom,
+                    rate_to: filters.rateTo,
+                    profit_from: filters.profitFrom,
+                    profit_to: filters.profitTo,
+                    name: searchText.isEmpty ? nil : searchText
+                )
+            }
+        }()
 
         let endpoint = APIEndpoint.searchFreelancers(
             page: page,
@@ -135,4 +134,3 @@ class FreelancerListViewModel: ObservableObject, GenericAPILoadable, Paginatable
         APIClient.shared.cancelRequest()
     }
 }
-

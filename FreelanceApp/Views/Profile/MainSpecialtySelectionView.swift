@@ -130,15 +130,31 @@ struct MainSpecialtySelectionView: View {
     // MARK: - Helpers
 
     private func syncInitialCategory() {
-        if let mainCat = UserSettings.shared.user?.mainSpecialtyId {
-            viewModel.mainCategoryId = mainCat
+        viewModel.getMainCategories {
+            applyInitialCategory()
         }
-        if let subCat = UserSettings.shared.user?.subcategory {
-            viewModel.subcategory = subCat
+    }
+
+    private func applyInitialCategory() {
+        guard let user = UserSettings.shared.user else { return }
+
+        // نعيّن الكاتيجوري مباشرة إذا متوفر
+        if let catId = user.category, !catId.isEmpty {
+            viewModel.mainCategoryId = catId
         }
+
+        // نعيّن الساب كاتيجوري مباشرة إذا متوفر
+        if let subId = user.subcategory, !subId.isEmpty {
+            viewModel.subcategory = subId
+        }
+
+        // تحميل الكاتيجوريز إن لم تكن محمّلة
         if viewModel.allCategories.isEmpty {
             viewModel.getMainCategories()
         }
+
+        debugPrint("✅ Main Category Applied:", viewModel.mainCategoryId ?? "nil")
+        debugPrint("✅ Subcategory Applied:", viewModel.subcategory ?? "nil")
     }
 
     private func updateMainCategoryAndSubcategory() {

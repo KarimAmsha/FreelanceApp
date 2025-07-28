@@ -79,7 +79,7 @@ extension User {
         if register_type == "personal" {
             return category
         } else if register_type == "company" {
-            return work
+            return category
         }
         return nil
     }

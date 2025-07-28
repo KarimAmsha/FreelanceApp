@@ -1,12 +1,11 @@
 import SwiftUI
-import PopupView
 import MapKit
+import PopupView
 
 struct EditProfileView: View {
     @EnvironmentObject var appRouter: AppRouter
     @State private var name = ""
     @State private var email = ""
-    @State private var dateStr: String = ""
     @State private var userLocation: CLLocationCoordinate2D? = nil
 
     @StateObject private var viewModel = UserViewModel()
@@ -15,34 +14,25 @@ struct EditProfileView: View {
     @State private var showCustomSheet = false
     @State private var uploadingProfile = false
     @State private var profileUploadProgress: Double? = nil
+    @State private var showDatePicker = false
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
-
-                    profileCardView()
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("اسم العرض")
-                            .customFont(weight: .regular, size: 13)
-                            .foregroundColor(.gray)
-                        TextField("اسم العرض", text: $name)
-                            .padding(.horizontal)
-                            .frame(height: 48)
-                            .background(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.22), lineWidth: 1))
-                    }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("البريد الإلكتروني")
-                            .customFont(weight: .regular, size: 13)
-                            .foregroundColor(.gray)
-                        TextField("البريد الإلكتروني", text: $email)
-                            .keyboardType(.emailAddress)
-                            .padding(.horizontal)
-                            .frame(height: 48)
-                            .background(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.22), lineWidth: 1))
-                    }
+                    EditProfileCardView(
+                        mediaPickerViewModel: mediaPickerViewModel,
+                        showCustomSheet: $showCustomSheet,
+                        imageUrl: viewModel.user?.image
+                    )
+                    
+                    ProfileInputFields(
+                        name: $viewModel.name,
+                        email: $viewModel.email,
+                        selectedDate: $viewModel.dobDate,
+                        showDatePicker: $showDatePicker,
+                        viewModel: viewModel
+                    )
 
                     if uploadingProfile {
                         AdvancedProgressView(
@@ -73,7 +63,32 @@ struct EditProfileView: View {
                 .padding(.bottom, 32)
             }
         }
-        .background(Color.background().ignoresSafeArea())
+        .navigationBarBackButtonHidden()
+        .background(Color.background())
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                HStack {
+                    Button {
+                        withAnimation { appRouter.navigateBack() }
+                    } label: {
+                        Image(systemName: "arrow.backward")
+                            .resizable()
+                            .frame(width: 20, height: 15)
+                            .foregroundColor(.black)
+                            .padding(12)
+                            .background(Color.white.clipShape(Circle()))
+                    }
+
+                    VStack(alignment: .leading) {
+                        Text(LocalizedStringKey.editProfile)
+                            .customFont(weight: .bold, size: 20)
+                        Text(LocalizedStringKey.editProfileHint)
+                            .customFont(weight: .regular, size: 10)
+                    }
+                    .foregroundColor(Color.black222020())
+                }
+            }
+        }
         .bindLoadingState(viewModel.state, to: appRouter)
         .onAppear {
             if name.isEmpty || email.isEmpty {
@@ -107,109 +122,53 @@ struct EditProfileView: View {
                 mediaPickerViewModel.didSelectImage(img)
             }
         }
-        .navigationBarBackButtonHidden()
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                HStack {
-                    Button {
-                        appRouter.navigateBack()
-                    } label: {
-                        Image(systemName: "chevron.backward")
-                            .font(.title3)
-                            .foregroundColor(.primary)
-                    }
-                    Text("تعديل الملف الشخصي")
-                        .customFont(weight: .bold, size: 18)
-                        .foregroundColor(.primary)
+        .sheet(isPresented: $showDatePicker) {
+            VStack {
+                DatePicker(
+                    "اختر تاريخ الميلاد",
+                    selection: Binding(
+                        get: { viewModel.dobDate ?? Date() },
+                        set: {
+                            viewModel.dobDate = $0
+                            showDatePicker = false
+                        }
+                    ),
+                    displayedComponents: [.date]
+                )
+                .datePickerStyle(.wheel)
+                .labelsHidden()
+                .environment(\.locale, Locale(identifier: "ar"))
+
+                Button("تم") {
+                    showDatePicker = false
                 }
+                .padding()
             }
-        }
-    }
-
-    @ViewBuilder
-    private func profileCardView() -> some View {
-        HStack(alignment: .center, spacing: 16) {
-            profileImageView()
-                .frame(width: 78, height: 78)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                .background(Circle().fill(Color.white).frame(width: 84, height: 84))
-                .shadow(color: Color.black.opacity(0.10), radius: 6, x: 0, y: 2)
-                .padding(.trailing, 2)
-
-            Button(action: { showCustomSheet = true }) {
-                Text("اضغط لرفع صورة جديدة")
-                    .customFont(weight: .medium, size: 15)
-                    .foregroundColor(Color.black121212())
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 10)
-                    .background(Color.white)
-                    .cornerRadius(22)
-                    .shadow(color: Color.black.opacity(0.04), radius: 3, x: 0, y: 1)
-            }
-            .buttonStyle(PlainButtonStyle())
-            .padding(.horizontal, 2)
-
-            Spacer()
-
-            if mediaPickerViewModel.getImage(for: .profileImage) != nil {
-                Button(action: {
-                    mediaPickerViewModel.removeMedia(for: .profileImage)
-                }) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 22))
-                        .foregroundColor(.red)
-                        .frame(width: 44, height: 44)
-                        .background(Color.red.opacity(0.12))
-                        .clipShape(Circle())
-                }
-                .padding(.leading, 2)
-            } else {
-                Spacer().frame(width: 44)
-            }
-        }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 10)
-        .background(
-            LinearGradient(gradient: Gradient(colors: [Color.white, Color(.systemGray6)]), startPoint: .top, endPoint: .bottom)
-        )
-        .cornerRadius(22)
-        .shadow(color: Color.black.opacity(0.03), radius: 9, x: 0, y: 3)
-        .padding(.top, 8)
-        .padding(.bottom, 12)
-        .environment(\.layoutDirection, .rightToLeft)
-    }
-
-    @ViewBuilder
-    private func profileImageView() -> some View {
-        if let selectedImage = mediaPickerViewModel.getImage(for: .profileImage) {
-            Image(uiImage: selectedImage)
-                .resizable()
-                .scaledToFill()
-        } else if let url = viewModel.user?.image?.toURL() {
-            AsyncImage(url: url) { image in
-                image.resizable().scaledToFill()
-            } placeholder: {
-                Image(systemName: "person.fill")
-                    .resizable()
-                    .scaledToFill()
-                    .foregroundColor(.gray)
-            }
-        } else {
-            Image(systemName: "person.fill")
-                .resizable()
-                .scaledToFill()
-                .foregroundColor(.gray)
+            .presentationDetents([.height(300)])
         }
     }
 
     private func update() {
-        guard !name.trimmingCharacters(in: .whitespaces).isEmpty else {
-            showMessage(message: "يرجى إدخال الاسم")
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let trimmedEmail = email.trimmingCharacters(in: .whitespaces)
+
+        guard !trimmedName.isEmpty, trimmedName.count >= 3 else {
+            showMessage(message: "الرجاء إدخال اسم لا يقل عن 3 أحرف")
             return
         }
-        guard !email.trimmingCharacters(in: .whitespaces).isEmpty else {
+
+        guard !trimmedEmail.isEmpty else {
             showMessage(message: "يرجى إدخال البريد الإلكتروني")
+            return
+        }
+
+        guard isValidEmail(trimmedEmail) else {
+            showMessage(message: "البريد الإلكتروني غير صالح")
+            return
+        }
+
+        if viewModel.selectedRole == .personal && viewModel.dobDate == nil {
+            showMessage(message: "يرجى اختيار تاريخ الميلاد")
             return
         }
 
@@ -245,15 +204,15 @@ struct EditProfileView: View {
         }
 
         let body = UpdateUserRequest(
-            email: email,
-            full_name: name,
+            email: viewModel.email.trimmingCharacters(in: .whitespaces),
+            full_name: viewModel.name.trimmingCharacters(in: .whitespaces),
             lat: userLocation?.latitude ?? user.lat ?? 0.0,
             lng: userLocation?.longitude ?? user.lng ?? 0.0,
             reg_no: user.reg_no,
             address: user.address,
             country: user.country,
             city: user.city,
-            dob: user.dob,
+            dob: viewModel.dobDate?.formatted("yyyy-MM-dd") ?? user.dob,
             category: user.category,
             subcategory: user.subcategory,
             work: user.work,
@@ -263,15 +222,22 @@ struct EditProfileView: View {
         )
 
         viewModel.updateUserData(body: body) { message in
-            showMessage(message: message)
+            appRouter.show(.success, message: "تم تحديث الملف الشخصي بنجاح")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
+                appRouter.navigateBack()
+            }
         }
+    }
+
+    private func isValidEmail(_ email: String) -> Bool {
+        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
+        return NSPredicate(format: "SELF MATCHES %@", emailRegex).evaluate(with: email)
     }
 
     private func getUserData() {
         viewModel.fetchUser {
             name = viewModel.user?.full_name ?? ""
             email = viewModel.user?.email ?? ""
-            dateStr = viewModel.user?.formattedDOB ?? ""
         }
     }
 
@@ -295,64 +261,4 @@ struct EditProfileView: View {
     EditProfileView()
         .environmentObject(AppRouter())
         .environmentObject(AppState())
-}
-
-struct CustomPhotoSourceSheet: View {
-    let pickCamera: () -> Void
-    let pickGallery: () -> Void
-
-    var body: some View {
-        VStack(spacing: 26) {
-            Capsule()
-                .frame(width: 36, height: 5)
-                .foregroundColor(.gray.opacity(0.3))
-                .padding(.top, 10)
-
-            Text("تغيير صورة الملف الشخصي")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundColor(.primary)
-
-            HStack(spacing: 36) {
-                // الكاميرا
-                OptionButton(icon: "camera", label: "الكاميرا", action: pickCamera)
-
-                // المعرض
-                OptionButton(icon: "photo", label: "المعرض", action: pickGallery)
-            }
-
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(
-            Color(.systemBackground)
-                .opacity(0.98)
-                .blur(radius: 0.7)
-        )
-        .cornerRadius(22)
-        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: -2)
-    }
-
-    // MARK: - Subview
-    @ViewBuilder
-    func OptionButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                ZStack {
-                    Circle()
-                        .fill(Color.primary.opacity(0.1))
-                        .frame(width: 60, height: 60)
-
-                    Image(systemName: icon)
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.primary)
-                }
-
-                Text(label)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.primary)
-            }
-        }
-        .buttonStyle(.plain)
-    }
 }

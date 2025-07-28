@@ -5,7 +5,7 @@ import Alamofire
 @MainActor
 class InitialViewModel: ObservableObject, GenericAPILoadable, Paginatable {
     var appRouter: AppRouter?
-    
+
     // MARK: - Published
     @Published var welcomeItems: [WelcomeItem]?
     @Published var constantsItems: [ConstantItem]?
@@ -39,21 +39,43 @@ class InitialViewModel: ObservableObject, GenericAPILoadable, Paginatable {
 
     private func tokenGuard() -> Bool {
         guard token != nil else {
-            handleError("Token غير متوفر")
+            failLoading(error: "Token غير متوفر")
             return false
         }
         return true
     }
 
-    // MARK: - GenericAPILoadable
-    func handleSuccess(message: String? = nil) {
-        isFetchingMoreData = false
+    // MARK: - Loading Helpers
+    func startLoading() {
+        state = .loading
+    }
+
+    func finishLoading(message: String? = nil) {
         state = .success(message: message)
     }
 
-    func handleError(_ error: String) {
+    func failLoading(error: String) {
         isFetchingMoreData = false
         state = .failure(error: error)
+    }
+
+    func shouldStartLoading() -> Bool {
+        if state.isLoading { return false }
+        return true
+    }
+
+    func resetState() {
+        state = .idle
+    }
+
+    // MARK: - GenericAPILoadable
+    func handleSuccess(message: String? = nil) {
+        isFetchingMoreData = false
+        finishLoading(message: message)
+    }
+
+    func handleError(_ error: String) {
+        failLoading(error: error)
     }
 
     // MARK: - Reset Pagination
@@ -68,45 +90,73 @@ class InitialViewModel: ObservableObject, GenericAPILoadable, Paginatable {
     // MARK: - Requests
 
     func fetchWelcomeItems() {
+        guard shouldStartLoading() else { return }
+        startLoading()
+
         fetchAPI(endpoint: .getWelcome, responseType: ArrayAPIResponse<WelcomeItem>.self) {
             self.welcomeItems = $0.items
+            self.finishLoading()
         }
     }
 
     func fetchConstantsItems() {
+        guard shouldStartLoading() else { return }
+        startLoading()
+
         fetchAPI(endpoint: .getConstants, responseType: ArrayAPIResponse<ConstantItem>.self) {
             self.constantsItems = $0.items
+            self.finishLoading()
         }
     }
 
     func fetchConstantItemDetails(_id: String) {
+        guard shouldStartLoading() else { return }
+        startLoading()
+
         fetchAPI(endpoint: .getConstantDetails(_id: _id), responseType: SingleAPIResponse<ConstantItem>.self) {
             self.constantItem = $0.items
+            self.finishLoading()
         }
     }
 
     func fetchAppConstantsItems() {
+        guard shouldStartLoading() else { return }
+        startLoading()
+
         fetchAPI(endpoint: .getAppConstants, responseType: SingleAPIResponse<AppConstants>.self) {
             self.appconstantsItems = $0.items
+            self.finishLoading()
         }
     }
 
     func fetchHomeItems() {
+        guard shouldStartLoading() else { return }
+        startLoading()
+
         fetchAPI(endpoint: .getHome, responseType: SingleAPIResponse<HomeItems>.self) {
             self.homeItems = $0.items
+            self.finishLoading()
         }
     }
 
     func fetchContactItems() {
+        guard shouldStartLoading() else { return }
+        startLoading()
+
         fetchAPI(endpoint: .getContact, responseType: ArrayAPIResponse<Contact>.self) {
             self.appContactItem = $0.items ?? []
             self.whatsAppContactItem = $0.items?.first(where: { $0.id == "665c8b4f952065449ef7248f" })
+            self.finishLoading()
         }
     }
 
     func getMainCategories() {
+        guard shouldStartLoading() else { return }
+        startLoading()
+
         fetchAPI(endpoint: .getCategories, responseType: ArrayAPIResponse<MainCategory>.self) {
             self.mainCategoryItems = $0.items
+            self.finishLoading()
         }
     }
 
@@ -114,6 +164,7 @@ class InitialViewModel: ObservableObject, GenericAPILoadable, Paginatable {
 
     func getProducts(body: ProductListRequest) {
         guard tokenGuard() else { return }
+        guard shouldStartLoading() else { return }
         startLoading()
         isFetchingMoreData = true
 
@@ -157,16 +208,19 @@ class InitialViewModel: ObservableObject, GenericAPILoadable, Paginatable {
 
     func getProductDetails(id: String) {
         guard tokenGuard() else { return }
+        guard shouldStartLoading() else { return }
+        startLoading()
 
         fetchAPI(endpoint: .getProductDetails(id: id, token: token!), responseType: BaseCustomStatusAPIResponse<Products>.self) { [weak self] response in
             self?.product = response.items
+            self?.finishLoading()
         }
     }
 
     // MARK: - Actions
     func handleButtonTapped(index: Int) {
         guard let url = URL(string: appContactItem[safe: index]?.Data ?? "") else {
-            handleError("رابط غير صالح")
+            failLoading(error: "رابط غير صالح")
             return
         }
         UIApplication.shared.open(url)
