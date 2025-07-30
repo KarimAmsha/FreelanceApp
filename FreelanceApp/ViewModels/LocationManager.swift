@@ -31,6 +31,14 @@ final class LocationManager: NSObject, ObservableObject, StateManaging {
     // Callback for external updates
     var onLocationUpdate: ((CLLocation) -> Void)? = nil
 
+    var authorizationStatus: CLAuthorizationStatus {
+        if #available(iOS 14.0, *) {
+            return locationManager.authorizationStatus
+        } else {
+            return CLLocationManager.authorizationStatus()
+        }
+    }
+
     // MARK: - Init
     override private init() {
         super.init()
